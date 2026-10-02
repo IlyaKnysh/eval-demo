@@ -1,0 +1,530 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.283",
+  "startedAt": "2026-10-01T15:38:32.377Z",
+  "durationSeconds": 72,
+  "costUsd": 0.6818966000000001,
+  "partial": false,
+  "suite": {
+    "root": "C:\\Users\\knysh\\source\\repos\\evals-demo\\.claude\\skills\\automation-framework-review-eval-plugin",
+    "ablation": "none",
+    "threshold": 1,
+    "concurrency": 3,
+    "plugins": [
+      {
+        "name": "automation-framework-review-eval-plugin",
+        "path": "C:\\Users\\knysh\\source\\repos\\evals-demo\\.claude\\skills\\automation-framework-review-eval-plugin"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "01-ui-messy-full-review",
+      "dir": "evals\\01-ui-messy-full-review",
+      "source": "prose",
+      "promptMarkdown": "Review the test automation framework rooted at the current directory.\n\nWrite the resulting issues-list review to `review.md` and the checklist-tab table to `checklist.md`, both in the current directory.",
+      "runsPerCase": 3,
+      "timeoutSeconds": 900,
+      "maxTurns": 40,
+      "graders": [
+        {
+          "name": "checklist-created",
+          "type": "file_exists",
+          "weight": 1,
+          "config": {
+            "path": "checklist.md",
+            "exists": true
+          }
+        },
+        {
+          "name": "checklist-table-format",
+          "type": "regex",
+          "weight": 0.5,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "checklist.md"
+            },
+            "pattern": "Section \\| Check \\| Status.*\\| Comments",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "defect-empty-catch",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "review.md"
+            },
+            "pattern": "compare\\.js",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "defect-fragile-locator",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "review.md"
+            },
+            "pattern": "xpath",
+            "flags": "i",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "defect-missing-business-layer",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The repo's 3 tests each independently re-compose the same \"log in as the user\" sequence (instantiate `LoginPage`, call `goto`, call `login` with hardcoded credentials) inline, with no reusable business-step/flow abstraction (no `steps/`/`flows/` package, no fixture that performs login as setup).\n\nThis is a single, narrow check: does the review identify this specific gap — that the login setup is duplicated across tests with no shared step/flow/fixture abstraction — in ANY phrasing (e.g. \"missing business-step layer\", \"no flow layer\", \"duplicated login sequence\", \"no reusable login fixture\", \"setup is inheritance/manual-instantiation based rather than fixture DI\")? Do not require exact wording; judge only whether this concept is present.\n\nScore PASS if the review names this gap in any reasonable phrasing. Score FAIL only if the review never identifies that the login setup is duplicated with no shared abstraction. Answer with your verdict and, if FAIL, confirm you found no mention of this concept anywhere in the document.",
+          "config": {
+            "criteria": "The repo's 3 tests each independently re-compose the same \"log in as the user\" sequence (instantiate `LoginPage`, call `goto`, call `login` with hardcoded credentials) inline, with no reusable business-step/flow abstraction (no `steps/`/`flows/` package, no fixture that performs login as setup).\n\nThis is a single, narrow check: does the review identify this specific gap — that the login setup is duplicated across tests with no shared step/flow/fixture abstraction — in ANY phrasing (e.g. \"missing business-step layer\", \"no flow layer\", \"duplicated login sequence\", \"no reusable login fixture\", \"setup is inheritance/manual-instantiation based rather than fixture DI\")? Do not require exact wording; judge only whether this concept is present.\n\nScore PASS if the review names this gap in any reasonable phrasing. Score FAIL only if the review never identifies that the login setup is duplicated with no shared abstraction. Answer with your verdict and, if FAIL, confirm you found no mention of this concept anywhere in the document.",
+            "focus": {
+              "source": "file",
+              "path": "review.md"
+            }
+          }
+        },
+        {
+          "name": "defect-naming-outlier",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "review.md"
+            },
+            "pattern": "dashboard\\.js",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "defect-raw-locator-bypass",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "review.md"
+            },
+            "pattern": "widget\\.spec\\.js",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "defect-sleeps",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "review.md"
+            },
+            "pattern": "waitForTimeout",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "no-fluff",
+          "type": "regex",
+          "weight": 0.5,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "review.md"
+            },
+            "pattern": "no violations found",
+            "flags": "i",
+            "match": "not_contains"
+          }
+        },
+        {
+          "name": "output-created",
+          "type": "file_exists",
+          "weight": 1,
+          "config": {
+            "path": "review.md",
+            "exists": true
+          }
+        },
+        {
+          "name": "skill-triggered",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "automation-framework-review",
+            "min": 1
+          }
+        },
+        {
+          "name": "tag-format",
+          "type": "regex",
+          "weight": 0.5,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "review.md"
+            },
+            "pattern": "\\[Impact: (High|Medium|Low) \\| Effort: (High|Medium|Low)\\]",
+            "flags": "",
+            "match": "contains"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.09523809523809523,
+            "passed": false,
+            "turns": 7,
+            "costUsd": 0.20700200000000002,
+            "judgeCostUsd": 0,
+            "durationSeconds": 51,
+            "startedAt": "2026-10-01T15:38:33.237Z",
+            "error": null,
+            "tracePath": "C:\\Users\\knysh\\AppData\\Local\\Temp\\claude-eval-VPk5sz\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "checklist-created",
+                "passed": false,
+                "weight": 1,
+                "explanation": "checklist.md missing (expected present)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "checklist-table-format",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"checklist.md\": path \"checklist.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "defect-empty-catch",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "defect-fragile-locator",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "defect-missing-business-layer",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "defect-naming-outlier",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "defect-raw-locator-bypass",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "defect-sleeps",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-fluff",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "output-created",
+                "passed": false,
+                "weight": 1,
+                "explanation": "review.md missing (expected present)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "skill-triggered",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "tag-format",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0.09523809523809523,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.2669494,
+            "judgeCostUsd": 0,
+            "durationSeconds": 71,
+            "startedAt": "2026-10-01T15:38:33.238Z",
+            "error": null,
+            "tracePath": "C:\\Users\\knysh\\AppData\\Local\\Temp\\claude-eval-mEOgEs\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "checklist-created",
+                "passed": false,
+                "weight": 1,
+                "explanation": "checklist.md missing (expected present)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "checklist-table-format",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"checklist.md\": path \"checklist.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "defect-empty-catch",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "defect-fragile-locator",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "defect-missing-business-layer",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "defect-naming-outlier",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "defect-raw-locator-bypass",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "defect-sleeps",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-fluff",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "output-created",
+                "passed": false,
+                "weight": 1,
+                "explanation": "review.md missing (expected present)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "skill-triggered",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "tag-format",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0.09523809523809523,
+            "passed": false,
+            "turns": 14,
+            "costUsd": 0.20794520000000002,
+            "judgeCostUsd": 0,
+            "durationSeconds": 47,
+            "startedAt": "2026-10-01T15:38:33.238Z",
+            "error": null,
+            "tracePath": "C:\\Users\\knysh\\AppData\\Local\\Temp\\claude-eval-VEwlL4\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "checklist-created",
+                "passed": false,
+                "weight": 1,
+                "explanation": "checklist.md missing (expected present)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "checklist-table-format",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"checklist.md\": path \"checklist.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "defect-empty-catch",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "defect-fragile-locator",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "defect-missing-business-layer",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "defect-naming-outlier",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "defect-raw-locator-bypass",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "defect-sleeps",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-fluff",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "output-created",
+                "passed": false,
+                "weight": 1,
+                "explanation": "review.md missing (expected present)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "skill-triggered",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "tag-format",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"01-ui-messy-full-review\" grader focus file \"review.md\": path \"review.md\" does not exist",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.09523809523809523,
+        "passRate": 0
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 1,
+    "casesPassed": 0,
+    "overallScore": 0.09523809523809523,
+    "overallPassRate": 0
+  }
+}
