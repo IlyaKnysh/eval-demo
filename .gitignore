@@ -1,0 +1,4 @@
+*.pyc
+__pycache__/
+.deepeval/
+.pytest_cache/

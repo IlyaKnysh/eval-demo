@@ -1,0 +1,9 @@
+# Current Playwright pin (1.47.0, released 2024, supports modern
+# auto-waiting / actionability checks and trace viewer improvements)
+playwright==1.47.0
+pytest==8.3.3
+pytest-playwright==0.5.2
+pytest-html==4.1.1
+pytest-rerunfailures==14.0
+requests==2.32.3
+python-dotenv==1.0.1

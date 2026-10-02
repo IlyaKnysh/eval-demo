@@ -1,0 +1,154 @@
+{
+  "expectations": [
+    {
+      "text": "Does NOT claim a God Base Class exists (BasePage.ts is deliberately slim: goto()/waitForLoad() only)",
+      "passed": true,
+      "evidence": "review.md checklist row 'Framework complies with SOLID': 'BasePage.ts is 20 lines / 2 methods, single-responsibility (no God Base Class)'. Verdict-up-front also states 'no God Base Class'."
+    },
+    {
+      "text": "Does NOT claim a missing business-step/flow layer exists (src/flows/orderFlows.ts, userFlows.ts, authFlows.ts are the real flow layer and every test uses them)",
+      "passed": true,
+      "evidence": "review.md: 'dedicated flows/ layer sits between page objects and tests and is used by all 5 spec files'; verdict-up-front: 'no missing business-step/flow layer'."
+    },
+    {
+      "text": "Does NOT claim layer-boundary leakage into tests (no test file imports @playwright/test directly per the fixture's design)",
+      "passed": true,
+      "evidence": "review.md checklist row 'Framework follows a layered architecture': '0 raw page.locator/click/fill calls or raw Locator/Page type imports in test files'; verdict-up-front: 'no layer-boundary leakage'."
+    },
+    {
+      "text": "Does NOT claim cross-file sibling duplication between OrderModifyPage and UserModifyPage as an uncontrolled DRY violation (they share logic via the composed EntityModifyPanel helper, which is the correct fix pattern, not the defect)",
+      "passed": true,
+      "evidence": "review.md's only DRY finding is the nextSuffix() duplication across factories; OrderModifyPage/UserModifyPage and EntityModifyPanel are never named as a duplication problem anywhere in review.md or checklist.md."
+    },
+    {
+      "text": "Does NOT claim hardcoded sleeps exist (zero page.waitForTimeout() calls in the fixture)",
+      "passed": true,
+      "evidence": "review.md checklist row 'Unconditional waits are not a common practice': '0 hits for Thread.sleep/time.sleep/waitForTimeout/setTimeout/implicitlyWait repo-wide.' FIRST table 'Fast' row corroborates with '+'."
+    },
+    {
+      "text": "Does NOT claim fragile/positional locators exist (fixture uses only getByRole/getByLabel/getByTestId)",
+      "passed": true,
+      "evidence": "No finding or checklist row in review.md/checklist.md flags locator fragility; verdict-up-front explicitly states 'no fragile locators'. Transcript subagent report cites 'locator distribution 11 getByRole / 6 getByLabel / 4 getByTestId / 0 CSS-XPath-positional'."
+    },
+    {
+      "text": "Does NOT flag EntityModifyPanel for not ending in 'Page' as a naming inconsistency (it is explicitly documented as intentionally not a page object)",
+      "passed": true,
+      "evidence": "Neither review.md nor checklist.md mentions EntityModifyPanel's naming at all; the naming-standards checklist row only discusses Page/Flows/Factory suffix consistency counts (6/6, 3/3, 2/2) without flagging EntityModifyPanel as an outlier."
+    },
+    {
+      "text": "Does NOT flag submitLoginAttempt as a duplicate/inconsistent second login method (it is a distinct, correctly-named method for the negative-login test path)",
+      "passed": true,
+      "evidence": "submitLoginAttempt is not mentioned anywhere in review.md, checklist.md, or the transcript's findings summary — no such finding was raised."
+    },
+    {
+      "text": "Does NOT flag the per-test UI login in adminSession/standardSession fixtures as a missing storageState optimization framed as a defect (an optional enhancement note is fine; calling it wrong is not)",
+      "passed": true,
+      "evidence": "adminSession/standardSession per-test login behavior is not mentioned anywhere in review.md or checklist.md — neither as a defect nor as an optional enhancement note. No false-positive claim was made."
+    },
+    {
+      "text": "Does NOT claim test-data cleanup/teardown is missing (the createdRecords fixture registers and tears down all 4 data-creating specs)",
+      "passed": true,
+      "evidence": "No finding in review.md or checklist.md mentions missing teardown/cleanup; the createdRecords fixture and teardown are not challenged anywhere."
+    },
+    {
+      "text": "Does NOT claim retries/trace capture are misconfigured (retries: 0 deliberately pairs with trace: 'on-first-retry'... this is documented and correct)",
+      "passed": true,
+      "evidence": "review.md checklist row 'Test stability is at a sufficient level': 'retries: 0 explicitly configured ... with documented rationale'; 'When tests fail, there are mechanisms to easily find the cause' row confirms trace/screenshot/video config as correct, no misconfiguration claimed."
+    },
+    {
+      "text": "If thorough, correctly surfaces the missing package-lock.json / npm ci mismatch (CI runs `npm ci` but no lockfile is committed) as a genuine, non-seeded defect",
+      "passed": false,
+      "evidence": "No mention of package-lock.json, npm ci, or a lockfile mismatch anywhere in review.md, checklist.md, or the transcript's findings list (only 3 findings total: outdated Playwright pin, duplicated nextSuffix(), placeholder password). This real, discoverable defect was missed entirely."
+    },
+    {
+      "text": "If thorough, correctly surfaces the tsconfig.json lib omitting ES2022 breaking the `cause` property typecheck in errors.ts as a genuine, non-seeded defect",
+      "passed": false,
+      "evidence": "No mention of tsconfig.json's lib setting, ES2022, or the `cause` property typecheck issue anywhere in review.md, checklist.md, or the transcript. This defect was missed entirely despite errors.ts being read (per transcript's claim all 27 files were read in full)."
+    },
+    {
+      "text": "If thorough, correctly surfaces the duplicated nextSuffix() helper across orderFactory.ts and userFactory.ts as a real cross-file duplication worth extracting",
+      "passed": true,
+      "evidence": "review.md finding: 'Duplicated nextSuffix() helper across the two factories ... src/factories/orderFactory.ts:11-16 and src/factories/userFactory.ts:11-16 each define an identical nextSuffix() function ... worth collapsing into src/utils/ the next time either factory is touched.' Also listed in Recommended actions #2 and checklist DRY row."
+    },
+    {
+      "text": "Produces a FIRST-principles table with mostly passing/clean verdicts, not manufactured failures",
+      "passed": true,
+      "evidence": "review.md FIRST table: Fast +, Independent +, Repeatable +, Self-validating +, Timely 'N/A statically' with a reasoned explanation (static review can't determine wall-clock runtime) rather than a manufactured failure."
+    },
+    {
+      "text": "The verdict-up-front paragraph does not read as a tour of what's good (no 'the architecture is clean, locators are stable, waits are solid' style praise) — if genuinely little is wrong, it says so briefly rather than touring strengths",
+      "passed": false,
+      "evidence": "The verdict-up-front paragraph reads: 'Everything else is a genuine, grep-verified clean bill of health — there is no missing business-step/flow layer, no God Base Class, no layer-boundary leakage, no swallowed exceptions, no unconditional sleeps, no fragile locators, and no naming drift.' This is a 7-item enumeration across nearly every review dimension (layering, SOLID, error handling, waits, locators, naming) — structurally a tour of strengths, just phrased as negated clauses ('no X') rather than positive adjectives. It does not say 'little is wrong' briefly; it recites the clean dimensions one by one, which is the exact pattern the assertion warns against."
+    },
+    {
+      "text": "Total finding count is low (roughly 0-5 real findings), consistent with this being a deliberately clean fixture — a review padding this out with 10+ findings to seem thorough is a failure mode to flag",
+      "passed": true,
+      "evidence": "review.md contains exactly 3 findings (outdated @playwright/test pin, duplicated nextSuffix(), hardcoded placeholder password), within the 0-5 target range, and the transcript explicitly confirms '3 total findings, all Low or Medium impact.'"
+    }
+  ],
+  "summary": {
+    "passed": 15,
+    "failed": 3,
+    "total": 18,
+    "pass_rate": 0.83
+  },
+  "execution_metrics": {
+    "tool_calls": {},
+    "total_tool_calls": null,
+    "total_steps": 5,
+    "errors_encountered": 0,
+    "output_chars": 7850,
+    "transcript_chars": 7150
+  },
+  "timing": {
+    "executor_duration_seconds": 386.7,
+    "total_tokens": 95489,
+    "duration_ms": 386658
+  },
+  "claims": [
+    {
+      "claim": "All 27 files in the fixture were read in full (no sampling)",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript Step 2 states the decision to read every file in full given the small scope; review.md's Scope line confirms 'All files were read in full.' This is plausible given the depth and specificity of citations (file:line references throughout) but cannot be independently re-verified beyond the transcript's self-report."
+    },
+    {
+      "claim": "Exactly 1 try/catch exists in the whole codebase, classified as rethrow-with-context (0 swallowed exceptions)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Manifest §F corroborates: 'Zero empty catch blocks anywhere in the repo (verified by grep)... Single wrap-and-rethrow convention: src/utils/errors.ts exports FrameworkError and withContext().' Consistent with the review's claim."
+    },
+    {
+      "claim": "@playwright/test is pinned to ^1.47.2 and is roughly a year-plus behind current releases as of 2026-10-01",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Manifest's 'Corrections to the claims above' section confirms: 'The ^1.47.2 Playwright pin is a September-2024 release... its age is now a fair note in the core-library-currency checklist row, not a finding' (manifest written with 2026-10-01 in mind). The review's framing as a 'Medium' impact finding is reasonable, though the manifest suggests it's intended more as a checklist-row note than a headline finding — a minor framing quibble, not a factual error."
+    },
+    {
+      "claim": "All 15 test() cases contain at least one real assertion",
+      "type": "quality",
+      "verified": false,
+      "evidence": "The manifest explicitly flags a genuine unseeded bug the review missed entirely: several tests (registerUser.spec.ts's admin/read-only user tests, createOrder.spec.ts's custom-status/notes/multi-item tests) only assert row-presence (expectRowWith*) and never check the actual role/status/notes/items under test, despite dedicated expectRoleFieldValue/expectStatusFieldValue assertion methods existing and being used by sibling specs. The review's 'Self-validating' FIRST-table row and 'assertion-free tests: 0' grep count are technically true (every test has *some* assertion) but miss this real assertion-depth gap that the manifest calls out as a genuine, discoverable bug a correct review should catch."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "If thorough, correctly surfaces the missing package-lock.json / npm ci mismatch",
+        "reason": "This and the tsconfig/ES2022 assertion are both legitimately discriminating — they require actually reading package.json/CI workflow/tsconfig.json with a build-correctness lens rather than just a design-pattern lens, and the review missed both despite claiming full-file reads and a thorough mandatory-grep pass. These are good catches by the eval; no change needed."
+      },
+      {
+        "reason": "No assertion in this list checks the assertion-depth bug the manifest explicitly calls out (registerUser.spec.ts and createOrder.spec.ts tests that only check row-presence instead of the specific field under test, despite expectRoleFieldValue/expectStatusFieldValue existing and being used elsewhere). This is listed in the manifest's 'Unseeded but genuine bugs' section as something 'a correct review should catch,' yet no assertion grades for it, so the review's miss here goes completely uncaught by the eval suite. Consider adding an assertion for this."
+      },
+      {
+        "reason": "The 'verdict-up-front paragraph does not read as a tour' assertion is good in principle but somewhat subjective to grade — a borderline case (negated-clause enumeration vs. positive-adjective enumeration) could reasonably be graded either way. Consider tightening the assertion's wording to clarify whether a list of 'no X' clauses counts as touring, since the review in this run chose exactly that phrasing style."
+      }
+    ],
+    "overall": "Strong, discriminating assertion set overall — the 11 false-positive guards are well-targeted and the review genuinely avoided all of them (worth noting: this is real evidence of good calibration, not a coincidence, given the citation density and grep-backed counts throughout). However, the review missed 2 of 3 genuine unseeded bugs the fixture was designed to test for (lockfile/npm-ci mismatch, tsconfig ES2022/cause typecheck break), which is a meaningful finding-completeness gap not fully reflected in the 83% headline pass rate since those 2 failures are diluted among 16 false-positive-avoidance assertions that were comparatively easy to satisfy by just not inventing things."
+  }
+}

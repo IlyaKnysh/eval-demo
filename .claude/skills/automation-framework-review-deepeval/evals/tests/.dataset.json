@@ -1,0 +1,222 @@
+[
+  {
+    "name": "clean-framework",
+    "input": "Target repo: .claude/skills/automation-framework-review-deepeval/evals/fixtures/clean-framework/ — a TypeScript + Playwright Test UI automation framework (\"Storefront Admin\" order/user-management domain), 27 files. Ground truth: this repo is deliberately GOOD across the review's dimensions. Deliberately clean practices that must NOT be flagged as findings: (1) clean layering — no test imports Locator/Page directly, page objects never return raw Locators (two small, type-only exceptions in the support layers are NOT page-object or test leakage: `authFlows.ts`'s `loginAsUser`/`attemptInvalidLogin` take a `Page` parameter because login is the entry point that runs before any page object exists, and `gridUtils.findGridRowByText` is an internal helper that returns a Locator to the page objects that call it; a review mentioning either as a Low-impact note is not wrong, but presenting them as the layering being broken is), a src/flows/* business-step layer (createOrder, registerUser, changeUserRole, loginAsUser) is used by every test instead of inline page-object chains; (2) no God Base Class — src/core/BasePage.ts is slim (nav only), DI via Playwright test.extend fixtures, EntityModifyPanel is a composed (not inherited) helper shared by OrderModifyPage/UserModifyPage; (3) DRY — single orderFactory.ts/userFactory.ts builders used everywhere, single typed User/Role representation with one LoginPage.loginAs(user) entry point, no sibling page-object duplication; (4) good test design — small focused tests (3-4 per file), fresh data per test, @smoke tag + CI split between smoke-on-PR and full-on-merge/nightly, every test has a real expect() assertion — NOTE: the assertion lives inside a page-object/panel method (e.g. `expectRowWithCustomer`, `expectWelcomeVisible`) that the test calls, not as a direct `expect()` in the test body; this indirection is the fixture's deliberate, consistent, 100%-uniform convention (self-validation is genuinely satisfied), not the '§A page-object verification smell' pattern that SKILL.md separately warns about — a review that raises 'verification lives in page objects, not tests' as a defect/layering violation for THIS fixture is flagging an intentional, fully-consistent design choice, not a real inconsistency, and should not do so; a review that omits it entirely is correct. The same goes for `EntityModifyPanel.save()` asserting the success toast and panel closing: that is the action completing (a completion wait), not a business-state verification. Claim (4) covers assertion PRESENCE (no test is assertion-free), not assertion DEPTH: `registerUser.spec.ts`'s 'registers a new admin user'/'registers a new read-only user' and `createOrder.spec.ts`'s custom-status/notes/multi-item tests assert only that the grid row exists, never the role/status/notes/items their names claim (even though `expectRoleFieldValue`/`expectStatusFieldValue` exist and are used in sibling specs) — a review reporting that is reporting a real, separate gap, not contradicting claim (4); (5) zero page.waitForTimeout() calls anywhere; (6) consistent semantic locators only (getByRole/getByLabel/getByTestId), centralized grid-row lookup helper; (7) zero empty catch blocks, one consistent wrap-and-rethrow (FrameworkError/withContext) convention, retries: 0 with documented rationale; (8) full diagnostics — trace-on-first-retry, screenshot-on-failure, published HTML report, tests grouped by test.describe; (9) .env.example + env-var-driven config, no hardcoded prod URLs/credentials — this claim is about no REAL credential being committed; the `adminUser()`/`standardUser()` fallback to the documented `'replace-me'` placeholder is part of it and must not be reported as a hardcoded credential. A review may still note, at Low impact, that the fallback fails late (a confusing login error) instead of failing fast on a missing env var — that is a separate debuggability observation, acceptable as long as it is not framed as a committed secret; (10) .gitignore covers report/test-result/env artifacts; (11) Playwright pin (^1.47.2) was current when this fixture was written and is a September-2024 release, so by the time the suite runs it is about two years old: a checklist row for core-library currency may legitimately say `-` and cite that age. What is NOT acceptable is a standalone finding heading about the pin, or claiming a missing capability that no other finding depends on; (12) 100% consistent naming (*Page classes, action-verb flow functions, *.spec.ts tests), documented in README/CONTRIBUTING. (13) strict TypeScript is enforced in CI via `npm run typecheck` (tsc --noEmit) in both workflow jobs; (14) test-data teardown is complete — the `createdRecords` fixture tracks records a test creates and deletes them after it, and all four data-creating specs register with it (createOrder, updateOrderStatus, registerUser, changeUserRole); (16) trace capture works: trace 'retain-on-failure' pairs correctly with the deliberate retries: 0 policy; (17) there is no unused fixture — standard-role login is covered in tests/auth/login.spec.ts; (18) the createdRecords ledger and the teardown endpoint agree on their key (customerEmail for orders, email for users); (19) nextSuffix() mixes TEST_WORKER_INDEX and random entropy so it is safe under fullyParallel; (20) the domain-types path alias is @domain/*, deliberately not @types/*, which would shadow the npm scope @types/node occupies; (21) EntityModifyPanel exposes typed fillField/selectField/expectFieldValue and keeps its Locator private — no page object receives a raw Locator; (15) the per-test UI login in adminSession/standardSession is a deliberate, documented isolation tradeoff, not a defect. One acceptable, real, low-severity nitpick exists (only chromium+firefox browser projects configured, no WebKit). It is an OPTIONAL enhancement note, not a required finding: a review that omits it is fully correct, and a review that mentions it as a low-severity optional note is equally correct. It must never be treated as a design-flaw finding. Separately, this fixture also contains two real, UNSEEDED build/CI-correctness bugs that are not part of the 21 clean dimensions above and are fair game to report: no `package-lock.json` is committed despite both CI jobs running `npm ci` (which requires one), and `tsconfig.json`'s `lib` array omits `ES2022`, so `src/utils/errors.ts`'s `FrameworkError` class (which assigns `this.cause`) fails to typecheck under the CI-enforced `npm run typecheck` step. A review that finds these two is correct, not a false positive. Two more real, unseeded, low-severity gaps also legitimately exist and may or may not be caught: `nextSuffix()` is byte-for-byte duplicated across `orderFactory.ts`/`userFactory.ts` (a real cross-file DRY miss, distinct from the 'no sibling page-object duplication' clean claim above, which is about page objects, not factories), and `updateOrderStatus.spec.ts`/`changeUserRole.spec.ts` seed their precondition via a full UI flow even though `fixtures.ts`'s teardown proves a direct API path already exists. Two more are real and may be reported: the `loginPage` fixture in `src/core/fixtures.ts` is never requested by any test (`login.spec.ts` builds its own via `attemptInvalidLogin(page, ...)`; claim (17) is about `standardSession`, not this), and the `createdRecords` teardown loop awaits each delete in sequence, so the first failing delete aborts cleanup of the remaining records (claim (14) says every data-creating spec registers with the ledger, which still holds). Not acceptable on this fixture: flagging the consistent `expect*` page-object verification methods (claim 4), flagging `submitLoginAttempt` as a second login representation (it exists for the negative-path test, see claim 3), or headed findings that are self-declared hypotheses.",
+    "expected_output": "A correct review of this repo produces very few findings in its main issues list — every one of the 21 clean dimensions listed above is genuinely clean and must not appear as a heading, a 'no violations found' note, or a 'verified strength' writeup anywhere except the FIRST-principles table and the checklist-tab table (per the skill's own no-fluff output-structure rule). A small number (roughly 2-5) of real, unseeded, low/medium-severity findings are legitimately discoverable in this fixture on close reading (missing lockfile for `npm ci`, `tsconfig` `lib` gap breaking `Error.cause`, duplicated `nextSuffix()` helper, UI-vs-API presetup inefficiency) — reporting some or all of these is correct and should not be scored as a false positive or as 'inventing findings,' since each is real and evidence-backed. What would be wrong is inventing a finding inside one of the 21 explicitly-clean dimensions (e.g. claiming the business-step layer is missing, or that there's a God Base Class, or flagging the page-object-internal verification convention from clean claim (4) as a layering/self-validation defect), or padding the count with restated/duplicate findings. The optional WebKit/mobile browser-coverage note may or may not appear; if it does, it must stay a minor optional enhancement, never escalated into a structural finding or Recommended Action. The FIRST-principles table should show clean/passing verdicts across Fast/Independent/Repeatable/Self-validating/Timely. The checklist-tab table should show mostly '+' rows for the Framework-section checks this review can verify (layered architecture, DRY, SOLID, language standards, unconditional-waits-not-common-practice, atomic/independent tests, current core library versions, no hardcoded credentials) plus '+' rows for Running-section diagnostics/CI-integration checks. The 'Verdict up front' paragraph must state only what is wrong and must not praise any of the 21 clean dimensions, even truthfully — that praise belongs only in the FIRST-principles and checklist tables.",
+    "additional_metadata": {
+      "scenario": "clean-framework",
+      "manifest_path": ".claude/skills/automation-framework-review-deepeval/evals/fixtures/clean-framework.manifest.md",
+      "fixture_path": ".claude/skills/automation-framework-review-deepeval/evals/fixtures/clean-framework/",
+      "ground_truth_type": "all-clean",
+      "must_not_mention_as_finding": [
+        "BasePage.ts",
+        "EntityModifyPanel.ts",
+        "createdRecords",
+        "standardSession",
+        "fieldByLabel"
+      ]
+    }
+  },
+  {
+    "name": "messy-framework",
+    "input": "Target repo: .claude/skills/automation-framework-review-deepeval/evals/fixtures/messy-framework/ — a Java + Selenium + TestNG UI automation framework (internal CRM/order-management admin domain), 28 files. Ground truth: this repo is deliberately BAD, seeded with 20 specific defects that must be caught: (1) God Base Class — BasePage.java, 252 lines, 8+ unrelated responsibilities (navigation, waiting, raw element getters, generic interaction, hardcoded-sleep helpers, popup handling, assertions, logging/data I/O, misc utilities), extended by all 10 page objects; (2) missing business-step/flow layer — no steps/flows package, 5 test methods each inline the same 5-6 step create-order/register-user sequence (CreateOrderTests.java x2, RegisterUserTests.java x2, InvoiceLookupTests.java x1); (3) layer-boundary leakage — 4 test files (ProductGridTests, InvoiceLookupTests, FullProductLifecycleTests, FullInvoiceBillingCycleTests) import WebDriver/WebElement directly and make 27 raw driver.findElement calls instead of going through page objects; (4) raw type leakage — 4 public page-object methods return raw WebElement/List<WebElement> (BasePage.getRawElement/getRawElements, UserManagement.getFirstResultRow, OrderHandler.getAllOrderRows); (5) cross-file sibling duplication — UserModifyPage/OrderModifyPage/ProductModifyPage/InvoiceModifyPage each declare the same 6 methods (verifyFieldIsEditableAndEnabled, enterName, selectStatus, enterEmail, clickSave, toggleActive) with near-identical bodies, 24 duplicated methods total; (6) no test-data builder — 4 test methods pass 10-11 raw string args inline to pass-through helper methods (createOrderInline/registerInline) instead of using a builder; (7) hardcoded sleeps — 33 Thread.sleep occurrences across 10 files, varying 800ms-4000ms; (8) mixed raw vs retrying waits — BasePage.java has proper retrying waitUntilDisplayed/waitUntilClickable helpers alongside a raw non-retrying isElementPresentNow() used elsewhere in the same domain layer (LoginPage, DashboardPage); (9) fragile locators — 55 total locators: 17/55 (31%) positional/auto-generated xpath or ext-comp-* IDs, 17/55 (31%) id/name-based, 21/55 (38%) CSS-based; (10) test independence violations — 2 static fields (orderIdFromFirstTest, lastRegisteredEmail) creating explicit order dependencies between tests; (11) 4 test methods with no assertions at all (ProductGridTests x3, InvoiceLookupTests x1); (12) 3 giant single-@Test-method test classes, 151-162 lines each, each covering 10-11 unrelated feature blocks in sequence (FullAdminWorkflowTests, FullProductLifecycleTests, FullInvoiceBillingCycleTests); (13) 31 empty/comment-only catch blocks across 9 files, including one inside a comparison utility (BasePage.compareElementText) that silently returns true (a match) on any exception, masking real failures; (14) nonzero CI retry count — testng.xml configures retryCount=3 via a RetryListener; (15) scratch/WIP test code (wip/ScratchLoginExperimentTest, wip/DebugOrderExportTest) left in the tree and NOT excluded from testng.xml's scan; (16) no smoke/regression tagging anywhere (no TestNG groups usage), CI runs the full suite unconditionally on every push/PR to any branch; (17) 2 naming outliers among page objects (UserManagement.java, OrderHandler.java don't end in Page, out of 15 classes) plus a 5-helper utils dumping-ground package with no cohesive theme; (18) no failure diagnostics — no screenshot/Allure/trace wiring in CI or testng.xml, ScreenshotUtil.java exists but is never invoked; (19) hardcoded plaintext production-looking URL and fake credentials in config.properties and duplicated in DbConnector.java/test files, no environment-switching mechanism; (20) outdated Selenium 3.141.59 pin (predates relative locators and W3C actionability).",
+    "expected_output": "A correct review must surface all 20 seeded defects above as findings (any reasonable heading/grouping is fine as long as the substance matches), each with file:line evidence and an [Impact|Effort] tag. Given the sheer number and severity of findings (a God Base Class, a missing business-step layer, 24 duplicated methods, 33 hardcoded sleeps, 31 empty catch blocks, no diagnostics, an outdated core dependency), the verdict-up-front should describe this as a framework with serious, structural, high-impact issues — not a framework that is 'mostly fine with a few nitpicks'. The FIRST-principles table should show clearly failing/at-risk verdicts (not Fast: hardcoded sleeps; not Independent: static-field order dependencies; not fully Self-validating: 4 assertion-free tests). Recommended Actions should lead with the highest-leverage structural fixes (missing business-step layer, God Base Class) ahead of small mechanical fixes (a single bad locator). The checklist-tab table should show mostly '-' rows across Framework/Running/Processes sections for the checks this review can verify.",
+    "additional_metadata": {
+      "scenario": "messy-framework",
+      "manifest_path": ".claude/skills/automation-framework-review-deepeval/evals/fixtures/messy-framework.manifest.md",
+      "fixture_path": ".claude/skills/automation-framework-review-deepeval/evals/fixtures/messy-framework/",
+      "ground_truth_type": "all-defective",
+      "must_mention_any": [
+        [
+          "BasePage.java",
+          "God Base Class",
+          "God class"
+        ],
+        [
+          "business-step",
+          "steps/",
+          "flow layer",
+          "flows/"
+        ],
+        [
+          "driver.findElement",
+          "layer-boundary",
+          "raw Selenium"
+        ],
+        [
+          "getRawElement",
+          "raw type",
+          "WebElement"
+        ],
+        [
+          "ModifyPage",
+          "sibling duplication",
+          "cross-file duplication"
+        ],
+        [
+          "createOrderInline",
+          "registerInline",
+          "test-data builder"
+        ],
+        [
+          "Thread.sleep",
+          "hardcoded sleep"
+        ],
+        [
+          "isElementPresentNow",
+          "non-retrying",
+          "raw.*wait"
+        ],
+        [
+          "ext-comp-",
+          "positional",
+          "fragile locator",
+          "XPath"
+        ],
+        [
+          "orderIdFromFirstTest",
+          "lastRegisteredEmail",
+          "static field",
+          "order dependency"
+        ],
+        [
+          "no assertion",
+          "without asserting",
+          "assertion-free",
+          "no `Assert` call",
+          "no Assert call",
+          "assert nothing"
+        ],
+        [
+          "FullAdminWorkflowTests",
+          "FullProductLifecycleTests",
+          "FullInvoiceBillingCycleTests",
+          "giant",
+          "multi-feature"
+        ],
+        [
+          "empty catch",
+          "compareElementText",
+          "swallow",
+          "catch.*(ignor|empty|silent)",
+          "exception.*(ignor|discard|silent)",
+          "silently (ignor|catch|swallow)"
+        ],
+        [
+          "retryCount",
+          "RetryListener",
+          "retry.*mask"
+        ],
+        [
+          "wip/",
+          "ScratchLoginExperimentTest",
+          "DebugOrderExportTest",
+          "scratch"
+        ],
+        [
+          "smoke",
+          "regression tag",
+          "groups"
+        ],
+        [
+          "UserManagement.java",
+          "OrderHandler.java",
+          "naming"
+        ],
+        [
+          "screenshot",
+          "Allure",
+          "trace capture",
+          "failure diagnostic"
+        ],
+        [
+          "config.properties",
+          "hardcoded credential",
+          "plaintext"
+        ],
+        [
+          "Selenium 3",
+          "3.141.59",
+          "outdated"
+        ]
+      ],
+      "min_findings": 12
+    }
+  },
+  {
+    "name": "medium-framework",
+    "input": "Target repo: .claude/skills/automation-framework-review-deepeval/evals/fixtures/medium-framework/ — a Python + pytest + Playwright (sync API) API+UI hybrid framework (\"SubTrack Admin\" subscription-billing/support-ticketing domain), 29 files. Ground truth: this is a MIXED-SIGNAL repo with 10 deliberately seeded defects that must be caught, mixed with 7 deliberately clean practices that must NOT be flagged. Seeded defects: (1) missing business-step/flow layer — no steps package, 4 tests across 3 files (test_account_lifecycle.py x2, test_ticket_lifecycle.py x1, test_subscription_lifecycle.py x1) each inline the same 4-step create-via-API/open-in-UI/modify-field/save-and-assert sequence; (2) layer-boundary leakage in API tests — test_billing_sync_api.py and test_ticket_export_api.py import `requests` directly and bypass the existing SubscriptionClient/TicketClient wrapper classes, while sibling files test_account_api.py/test_subscription_api.py use the wrappers correctly (a DIP-consistency finding, not a missing-abstraction finding — the wrapper already exists); (3) cross-file sibling duplication — AccountModifyPage/ContactModifyPage/TicketModifyPage/SubscriptionModifyPage are four page objects with byte-for-byte identical method structure (wait_until_loaded, update_name, update_status, save_changes, cancel_changes), differing only in label strings; (4) domain-concept representation inconsistency — most tests get credentials via the typed AuthContext/User object (conftest.py's authenticated_context fixture calling AuthContext.login_as), but test_billing_sync_api.py (both tests) and test_ticket_export_api.py instead pull a raw token string directly from Config/env and pass it straight to the API layer, bypassing the typed object for the same concept (this co-occurs with defect #2 in the same two files but is a distinct root cause — a correct review should report both, not collapse them into one finding); (5) test independence violation — test_ticket_lifecycle.py has a module-level `_CREATED_TICKET_IDS = []` list; one test appends to it, another reads from it, making the second fail with IndexError if run in isolation; (6) 2 tests with no assertions at all (test_account_lifecycle.py's test_delete_account_removes_from_list, test_account_api.py's test_delete_account which does a no-op attribute access instead of asserting); (7) exactly 2 bare `except: pass` blocks, one inside a comparison/verification helper (test_ticket_export_api.py's _content_matches_expected_header) that silently returns False on any error, one inside test_admin_console_nav.py's _values_are_equivalent; (8) nonzero retries (pytest-rerunfailures reruns=2, also set in CI) with no flaky-test tracking or quarantine mechanism found anywhere in the repo; (9) 2 naming outliers among 10 page objects — AdminConsole.py and SettingsScreen.py don't follow the *Page suffix (and are also PascalCase-named files, unlike the snake_case convention used by all other files in src/pages/) — the review must scope this finding to only these 2 outliers, not indict the whole pages package, since 8 of 10 files are correctly named; (10) one hardcoded plaintext-looking fake credential (INVOICING_PROVIDER_API_KEY in config.py) committed directly even though every other credential in the same class uses os.getenv(...) and .env.example already documents the intended env-var name for this exact secret — an inconsistency in applying an otherwise-complete secrets mechanism, not a missing mechanism. Deliberately clean practices that must NOT be flagged: (a) good DI via pytest fixtures in conftest.py, no God Base Class — this claim is about the composition MECHANISM (fixtures, not inheritance chains); it does not claim the fixtures work. They contain a real, unseeded, high-impact bug: `authenticated_context` builds `AuthContext(page, account_client)` and `AuthContext.login_as` calls `account_client.authenticate(...)` (`src/core/auth.py:34`), but `AccountClient` extends `BaseApiClient`, not `AuthClient` (which is the only class defining `authenticate`, `src/api_clients/base_client.py:23-24`) — so every test using `authenticated_context` errors in setup with AttributeError. Reporting that is correct and verifiable, not a false positive; (b) consistent builder-pattern factories (AccountBuilder, TicketBuilder, SubscriptionBuilder) used by every test needing test data — NOTE: ContactBuilder and ContactModifyPage are a genuinely separate, deliberately-seeded dead-code defect (0 references anywhere outside their own definitions, verifiable by grep), not part of this clean claim; a review correctly flagging them as dead code is right, not a false positive, despite the resemblance to the 'builder factory' clean claim above — the two are different classes. SEPARATELY, this 'consistent builder-pattern factories' claim covers the builder PATTERN (chainable `with_*` methods, a `.build()` returning a plain dict) being applied consistently, NOT that every builder's default field values are unique/non-colliding: `SubscriptionBuilder.plan_code` (`src/factories/factories.py:88`) is hardcoded to the literal `\"PRO-MONTHLY\"` for every instance, unlike `AccountBuilder`/`TicketBuilder`, which both use the shared `_seq` counter for uniqueness — this is a real, unseeded, narrowly-scoped defect (compounded by `SubscriptionListPage.open_subscription` using `plan_code` as its UI lookup key), not a false positive against clean claim (b); (c) zero hardcoded sleeps, Playwright auto-waiting used for actions — this claim covers sleeps and action auto-waiting only. Assertions are a separate, real gap: tests assert on instant reads (`assert badge.inner_text() == \"Suspended\"` in `tests/ui/test_search.py:32`, `assert ... is_visible()`), and Playwright's retrying `expect(...)` is never used, so a review flagging non-retrying assertions is correct, not contradicting this claim; (d) consistent semantic locators (get_by_role/get_by_label/get_by_test_id/get_by_text) exclusively, no CSS/XPath anywhere, including in the 2 naming-outlier files; (e) Playwright pin (1.47.0) was current when this fixture was written (a September-2024 release, so about two years old by the time the suite runs): a core-library-currency checklist row may legitimately say `-` and cite that age, but a standalone finding heading about the pin is not acceptable; (f) good diagnostics — trace-on-retry, published HTML report, both uploaded as CI artifacts — this claim covers the diagnostics being configured and published. A narrower real gap exists: `conftest.py:90`'s condition only saves a trace when `rep_call` exists, which is set only by the call phase, so a failure during fixture setup (such as the `authenticated_context` crash above) discards its trace; README's 'on-first-retry'/'Allure-style' wording also doesn't match the code. Reporting that gap is correct, not contradicting this claim. Reporting the Playwright 1.47.0 pin as its own outdated-dependency finding IS contrary to claim (e); (g) otherwise-consistent naming (test_*.py enforced by pytest.ini, *Client suffix on all API clients) apart from the 2 seeded page-object outliers in defect #9.",
+    "expected_output": "A correct review must catch all 10 seeded defects (with defects #2 and #4 reported as two distinct findings even though they co-occur in the same two files) and must NOT flag any of the 7 clean practices — in particular it must not indict the whole src/pages/ naming convention just because 2 files are outliers, and must not report the DI/fixtures setup, the general factory pattern, the wait strategy, the locator strategy, the dependency version, or the diagnostics setup as problems. Two more real, unseeded, low/medium-severity findings are also legitimately discoverable and may or may not be caught: `ContactBuilder`/`ContactModifyPage` are dead code (0 references anywhere outside their own definitions), and `SubscriptionBuilder.plan_code` is hardcoded non-unique (`\"PRO-MONTHLY\"` for every instance, unlike the `_seq`-based `AccountBuilder`/`TicketBuilder`) while being used as the UI list-page lookup key — reporting either or both is correct and must not be scored as contradicting clean claim (b), since that claim is about the builder pattern being applied consistently, not about every field being collision-safe. The verdict-up-front should reflect a genuinely mixed picture: real, specific structural gaps (missing steps layer, sibling duplication, layering/DIP inconsistency) alongside genuinely solid fundamentals (fixtures, factories, waiting, locators, diagnostics) — not uniformly harsh or uniformly lenient. The FIRST-principles table should show a mix: Independent fails (module-level shared state), Self-validating fails (2 no-assertion tests), but the review should not invent failures for dimensions that are actually clean. The checklist-tab table should show a mix of '+' and '-' rows, not all one or the other.",
+    "additional_metadata": {
+      "scenario": "medium-framework",
+      "manifest_path": ".claude/skills/automation-framework-review-deepeval/evals/fixtures/medium-framework.manifest.md",
+      "fixture_path": ".claude/skills/automation-framework-review-deepeval/evals/fixtures/medium-framework/",
+      "ground_truth_type": "mixed-signal",
+      "must_mention_any": [
+        [
+          "business-step",
+          "steps/",
+          "flow layer",
+          "inline"
+        ],
+        [
+          "requests",
+          "test_billing_sync_api",
+          "test_ticket_export_api",
+          "bypass"
+        ],
+        [
+          "ModifyPage",
+          "sibling duplication",
+          "cross-file duplication"
+        ],
+        [
+          "AuthContext",
+          "raw token",
+          "typed.*auth"
+        ],
+        [
+          "_CREATED_TICKET_IDS",
+          "module-level",
+          "shared state"
+        ],
+        [
+          "no assertion",
+          "without asserting",
+          "assertion-free",
+          "no `Assert` call",
+          "no.*assert.*call",
+          "assert nothing"
+        ],
+        [
+          "except:",
+          "bare except",
+          "empty catch",
+          "swallow"
+        ],
+        [
+          "reruns",
+          "retry.*mask",
+          "flaky"
+        ],
+        [
+          "AdminConsole.py",
+          "SettingsScreen.py",
+          "naming"
+        ],
+        [
+          "INVOICING_PROVIDER_API_KEY",
+          "hardcoded credential"
+        ]
+      ],
+      "must_not_mention_as_finding": [
+        "conftest.py",
+        "factories.py",
+        "AccountBuilder",
+        "get_by_role",
+        "get_by_test_id"
+      ],
+      "min_findings": 8
+    }
+  }
+]

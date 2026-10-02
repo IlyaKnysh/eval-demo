@@ -1,0 +1,20 @@
+## Checklist tab input
+
+| Section | Check | Status (+/-) | Comments |
+|---|---|---|---|
+| Framework | Framework is consistent | - | `SubscriptionModifyPage.update_name()` fills "Plan code", not a name field, inconsistent with its 3 sibling classes (`src/pages/subscription_modify_page.py:10-11`). No method-chaining convention exists at all (no page object returns `self`/a next page), so nothing to be inconsistent with there. |
+| Framework | Framework follows a layered architecture | - | No raw Playwright/requests imports inside page objects or leaking into tests' import lines, but 2 test files (`test_billing_sync_api.py`, `test_ticket_export_api.py`) bypass existing `SubscriptionClient`/`TicketClient` wrappers for raw `requests` calls — a layer-consistency gap, not a full leak. |
+| Framework | Framework complies with DRY | - | 4 sibling `*ModifyPage` files duplicate the same 5-method shape near-identically (`account_modify_page.py`, `contact_modify_page.py`, `subscription_modify_page.py`, `ticket_modify_page.py`, all 21-22 lines each). |
+| Framework | Framework complies with KISS | + | No God Base Class, no over-abstracted OCP mechanism, no needless indirection found; page objects are flat and simple (if duplicated). |
+| Framework | Framework complies with SOLID | + | No inheritance hierarchy among page objects (ISP/LSP N/A — nothing to violate); no God Base Class (SRP clean); DIP consistent — `requests.Session` wrapped uniformly in `BaseApiClient` subclasses except the 2 bypass tests already captured under DRY/layering above. |
+| Framework | Framework complies with language standards | - | 2 of 9 page-object files (`AdminConsole.py`, `SettingsScreen.py`) break the `*Page` suffix convention used by the other 7 (`LoginPage`, `DashboardPage`, `AccountModifyPage`, etc.) — self-documented in the files' own docstrings. |
+| Framework | Unconditional waits are not a common practice | + | 0 hits for `Thread.sleep`/`time.sleep`/`waitForTimeout`/`implicitlyWait` across the whole repo. |
+| Framework | Tests are atomic and independent | - | `tests/hybrid/test_ticket_lifecycle.py` — module-level `_CREATED_TICKET_IDS` list makes `test_second_test_relies_on_previous_ticket` depend on `test_create_ticket_and_record_id` having already run; isolated to 1 of 3 hybrid files. |
+| Framework | Tests remain independent under parallel execution | — | Not applicable — no `pytest-xdist`/parallel worker config found anywhere in `pytest.ini`, CI config, or `requirements.txt`. |
+| Framework | Core libraries/framework/language versions are reasonably current | + | Playwright 1.47.0 (2024, post-dates auto-waiting/trace-viewer baseline), pytest 8.3.3 — both current (`requirements.txt`). |
+| Framework | No hardcoded credentials/secrets in the test codebase | - | `src/core/config.py:26` — `INVOICING_PROVIDER_API_KEY = "sk-fake1234567890"` committed as a literal, inconsistent with the rest of the class which sources via `os.getenv`. Isolated to this one field. |
+| Running | When tests fail, there are mechanisms to easily find the cause | + | Playwright trace capture on retry (`conftest.py:84-93`), HTML report published as CI artifact (`ci.yml:33-38`), traces published too (`ci.yml:40-46`). |
+| Running | Test stability is at a sufficient level | - | `pytest.ini:14-15` sets `reruns = 2`, and CI (`ci.yml:31`) redundantly re-specifies the same flags — a nonzero default retry masks genuine flakiness, and no flaky-test tracking/quarantine mechanism exists anywhere in the repo. |
+| Running | There is a way to track run results over time | + | HTML report (`pytest-html`) published as a build artifact on every CI run (`ci.yml:33-38`). |
+| Running | Tests are integrated into CI/CD, not run purely manually/on-demand | + | `.github/workflows/ci.yml` runs on every push/PR to `main`. |
+| Processes | A failure-handling strategy is implemented (bug reporting → flaky rerun → failure skipping) | - | Only the rerun stage exists (`pytest.ini` reruns=2); no skip-with-reason or ticket-link mechanism found to distinguish known/tracked failures from new ones. |

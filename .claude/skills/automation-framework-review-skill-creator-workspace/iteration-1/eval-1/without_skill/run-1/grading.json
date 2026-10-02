@@ -1,0 +1,191 @@
+{
+  "expectations": [
+    {
+      "text": "Flags BasePage.java as a God Base Class / SRP violation bundling multiple unrelated responsibilities (navigation, waits, assertions, popups, data I/O, misc utilities)",
+      "passed": true,
+      "evidence": "review.md finding 11: \"BasePage is a god object. It mixes unrelated responsibilities in one class: navigation, explicit waits, raw element access, click/type helpers, two different sleep-based 'wait hacks,' alert/modal/cookie-banner handling, TestNG assertions, text-comparison 'verification' logic, file logging, CSV result writing, JS-executor scroll/highlight/page-ready checks, frame switching, dropdown selection, and hover.\" This covers navigation, waits, assertions, popups (alert/modal/cookie-banner), data I/O (CSV/logging), and misc utilities (JS/frame/dropdown/hover) — matches the manifest's 8+ responsibility list closely."
+    },
+    {
+      "text": "Identifies a missing business-step/flow layer, citing that tests inline the same create-order / register-user sequences directly via page-object calls (at least 3 of the 5 known occurrences across CreateOrderTests.java, RegisterUserTests.java, InvoiceLookupTests.java)",
+      "passed": false,
+      "evidence": "No finding in review.md or checklist.md names a missing 'business-step/flow layer' or 'steps/flows package' concept at all. The closest related findings are #31 (no test-data builder for createOrderInline/registerInline helpers) and #20 (god tests), but neither identifies the specific pattern of the same 5-6 step create-order/register-user sequence being inlined repeatedly across CreateOrderTests.java, RegisterUserTests.java, and InvoiceLookupTests.java instead of being extracted to a shared business-flow method. This distinct architectural gap (missing steps/flows abstraction layer) is simply absent from the output."
+    },
+    {
+      "text": "Identifies layer-boundary leakage: at least 2 of the 4 test files that import org.openqa.selenium.WebDriver/WebElement and call driver.findElement directly instead of going through a page object (ProductGridTests.java, InvoiceLookupTests.java, FullProductLifecycleTests.java, FullInvoiceBillingCycleTests.java)",
+      "passed": true,
+      "evidence": "Finding 21 in review.md: \"Raw Selenium calls embedded directly in test classes, bypassing page objects. FullProductLifecycleTests and FullInvoiceBillingCycleTests call driver.findElement(By...) directly (e.g., .nav-products, #productNameInput, .toast-success, .btn-archive, .archive-modal .btn-confirm) instead of going through a page object.\" This literally names 2 of the 4 manifest files (FullProductLifecycleTests.java, FullInvoiceBillingCycleTests.java) with correct supporting evidence, meeting the assertion's explicit 'at least 2 of the 4' threshold. Caveat (see eval_feedback): the review shows no awareness that ProductGridTests.java and InvoiceLookupTests.java also exhibit this same leakage — both are discussed elsewhere in the review under the unrelated 'no assertions' finding without their raw driver.findElement usage ever being flagged — so detection of the broader pattern is partial/incomplete even though the literal numeric bar is met."
+    },
+    {
+      "text": "Identifies raw WebElement/List<WebElement> leakage from public page-object methods (e.g. BasePage.getRawElement/getRawElements, UserManagement.getFirstResultRow, OrderHandler.getAllOrderRows)",
+      "passed": false,
+      "evidence": "Finding 16 in review.md only names BasePage's getRawElement/getRawElements (\"BasePage exposes raw WebElement escape hatches\"). Checklist row 16 repeats only 'BasePage.getRawElement/getRawElements'. Neither review.md nor checklist.md mentions UserManagement.getFirstResultRow() or OrderHandler.getAllOrderRows() anywhere — a full-text scan of both files shows no occurrence of 'getFirstResultRow' or 'getAllOrderRows'. Only 1 of the 3 manifest-cited raw-leakage methods was found."
+    },
+    {
+      "text": "Identifies cross-file sibling duplication across the 4 *ModifyPage classes (UserModifyPage, OrderModifyPage, ProductModifyPage, InvoiceModifyPage) with near-identical method bodies, not just a single-file God Base Class finding",
+      "passed": true,
+      "evidence": "Finding 13: \"Massive copy-paste duplication across 'modify' page objects. OrderModifyPage, ProductModifyPage, UserModifyPage, and InvoiceModifyPage are near character-for-character identical (same method names: verifyFieldIsEditableAndEnabled, enterName, selectStatus, enterEmail, clickSave, toggleActive; same save/active-checkbox locator patterns)...\" This is a distinct finding from the BasePage god-object finding (#11) and correctly names all 4 classes and all 6 shared method names matching the manifest exactly."
+    },
+    {
+      "text": "Reports a quantified hardcoded-sleep count backed by a grep (expects a count in the 30s-40s range across ~10 files, not just 'some sleeps exist')",
+      "passed": true,
+      "evidence": "Finding 28: \"Pervasive Thread.sleep instead of explicit/fluent waits — 38 occurrences across the codebase.\" Transcript step 6 documents the grep used: \"grep -rn \\\"Thread.sleep\\\" --include=*.java src | wc -l → 38 matches, used as the quantified basis for the 'pervasive sleep usage' finding.\" 38 matches the manifest's exact count. File-count breadth ('~10 files') is not explicitly stated as a number, but the quantified occurrence count backed by a grep is clearly present and correct."
+    },
+    {
+      "text": "Reports a quantified empty-catch-block / swallowed-exception count backed by a grep (expects a count in the 30s-40s range across ~9 files), and separately flags BasePage.compareElementText's empty catch as a verification utility masking failure as a false match",
+      "passed": false,
+      "evidence": "No numeric count of empty catch blocks appears anywhere in review.md, checklist.md, or the transcript (the transcript's grep list in step 6 covers dead-code, Thread.sleep, locator-strategy, .gitignore/logging, and config.properties usage greps only -- no catch-block grep is mentioned). Finding 33 discusses 'inconsistent exception handling style' qualitatively ('some empty catch blocks silently swallow...') with no count. The second half of the assertion does pass: finding 30 explicitly flags compareElementText as swallowing exceptions and defaulting to true, 'masking a real failure as a false match' in spirit (\"a broken locator or missing element is interpreted as a successful comparison match\"). But since the assertion requires BOTH the quantified grep-backed count AND the compareElementText flag, and the count is entirely absent, the assertion as a whole fails."
+    },
+    {
+      "text": "Reports a quantified count of assertion-free test methods (expects 4, e.g. in ProductGridTests.java and InvoiceLookupTests.java)",
+      "passed": false,
+      "evidence": "Finding 22 describes 3 instances in ProductGridTests.java (testOpenProductGridAndFilter, testSortProductGridByPrice, testExpandProductDetailsPanel) plus one in FullProductLifecycleTests ('same pattern in FullProductLifecycleTests's exportToast.isDisplayed() call') — totaling 4 instances by my count, but no explicit number ('4') is ever stated as a quantified total anywhere in review.md or checklist.md. More importantly, the 4th instance is misattributed to FullProductLifecycleTests rather than InvoiceLookupTests.testInvoiceGridLoadsWithoutError (verified: InvoiceLookupTests.java only contains 2 Assert calls at lines 42 and 47, confirming testInvoiceGridLoadsWithoutError at lines 50-55 has no assertion, per the manifest). InvoiceLookupTests is never flagged as assertion-free in either output file. No stated quantified count and a wrong file attribution means this fails both on the 'quantified count' requirement and partially on accuracy."
+    },
+    {
+      "text": "Flags the 3 giant multi-feature single-@Test-method test classes (FullAdminWorkflowTests, FullProductLifecycleTests, FullInvoiceBillingCycleTests), each 150+ lines covering many unrelated features",
+      "passed": true,
+      "evidence": "Finding 20: \"'God tests' covering 10-13 unrelated features in a single @Test method. FullAdminWorkflowTests.testFullAdminWorkflowEndToEnd(), FullInvoiceBillingCycleTests.testFullInvoiceBillingCycleEndToEnd(), and FullProductLifecycleTests.testFullProductLifecycleEndToEnd() each chain 10+ numbered 'feature' blocks...\" All 3 classes correctly named with accurate feature-count description matching the manifest (11/13/13 feature blocks, 150+ lines)."
+    },
+    {
+      "text": "Flags the nonzero CI retry count (testng.xml retryCount=3 + RetryListener) as masking flakiness, with no quarantine/tracking mechanism",
+      "passed": true,
+      "evidence": "Finding 27: \"Retry masking flaky tests instead of fixing root causes. testng.xml configures retryCount=3 via RetryListener, silently retrying any failing test up to 3 times... this is very likely compensating for timing-based flakiness rather than the team fixing the underlying wait strategy. Blanket suite-wide retries also hide genuinely broken tests behind 'eventually passed.'\" This correctly cites retryCount=3, RetryListener, and the masking-flakiness concern. No quarantine/tracking mechanism is implicitly noted as absent (the finding frames the retry as unconditional and blanket), though it isn't phrased with the literal words 'no quarantine mechanism'."
+    },
+    {
+      "text": "Flags the scratch/WIP test package (com.acme.crm.wip) as not excluded from the TestNG suite scan",
+      "passed": true,
+      "evidence": "Finding 25: \"Scratch/WIP/debug test classes are checked into the main suite and actively executed in CI. testng.xml includes the com.acme.crm.wip package alongside the real com.acme.crm.tests package, so DebugOrderExportTest ('remove before merge') and ScratchLoginExperimentTest ('TODO: delete this or move it somewhere real - Dave, 2024') run on every CI build.\" Matches the manifest's item 15 exactly, including both file names and their TODO comments."
+    },
+    {
+      "text": "Flags hardcoded plaintext credentials/environment values (config.properties, DbConnector.java) with no environment-switching mechanism",
+      "passed": true,
+      "evidence": "Finding 1: \"Plaintext production credentials committed to the repo. src/test/resources/config.properties contains a live-looking admin username/password... and a production database user/password...\" Finding 3: \"Hardcoded production database connection in DbConnector.\" Finding 7: \"Single hardcoded environment, no environment abstraction. There is no profile/parameterization for dev/staging/prod.\" All three pieces (config.properties, DbConnector.java, no env-switching) are explicitly covered."
+    },
+    {
+      "text": "Gives a locator-strategy distribution with real counts/percentages (not just an impression), roughly matching the ~31%/31%/38% positional/id/css split",
+      "passed": false,
+      "evidence": "Finding 15 and checklist row 15 give file-level counts only: 'ext-comp-* IDs (8 of 10 page objects)' and 'absolute positional XPath (6 of 10 page objects)' — these are counts of FILES containing each pattern, not counts of individual By locator declarations. The manifest's ground-truth distribution is over 55 total locator declarations (17 positional/31%, 17 id-based/31%, 21 css-based/38%), which is a materially different metric. The review never counts total locator declarations, never establishes a percentage breakdown, and never mentions id-based or css-based locators as a distinct category at all (css-based locators, 38% of all locators per the manifest, are not discussed anywhere in review.md). The 8/10 and 6/10 file-prevalence counts are real counts, but they do not constitute a 'locator-strategy distribution' with percentages across the three buckets as the assertion requires."
+    },
+    {
+      "text": "Does NOT include a heading or paragraph praising any clean dimension (e.g. no 'the core layers are well separated' or similar fluff) — every surviving heading names a problem",
+      "passed": false,
+      "evidence": "review.md contains a dedicated section '## Notes on what's working reasonably well' (lines 73-78) with bullet points such as \"The suite does use the page-object pattern as its overall structure\", \"BasePage does provide proper explicit-wait helpers... the right primitive exists, it's just underused\", and \"CI does exist and runs on every push/PR\". This is exactly the kind of praising-a-clean-dimension content the assertion says must be absent. The assertion explicitly fails."
+    },
+    {
+      "text": "Every individual finding is tagged with [Impact: High/Medium/Low | Effort: High/Medium/Low] immediately after its heading, using only those three legal values",
+      "passed": false,
+      "evidence": "None of the 34 numbered findings in review.md use the '[Impact: X | Effort: Y]' tag format. Findings are instead given a single 'Severity' rating (Critical/High/Medium/Low — note 'Critical' is not even one of the assertion's three legal values) in the checklist table only, not immediately after each finding's heading in the prose Issues section, and there is no separate Effort dimension anywhere in either file. This is an entirely different rating scheme than what the assertion requires, and was expected to fail per the task framing (baseline has no reason to know this specific required format)."
+    },
+    {
+      "text": "Produces a FIRST-principles table (Fast/Independent/Repeatable/Self-validating/Timely) with a verdict and evidence for each letter",
+      "passed": false,
+      "evidence": "No table, heading, or mention of 'FIRST', 'Fast/Independent/Repeatable/Self-validating/Timely', or any per-letter verdict/evidence structure appears anywhere in review.md or checklist.md. This concept is entirely absent from the baseline output, as expected since it reflects a skill-specific required format the baseline had no reason to know."
+    },
+    {
+      "text": "Produces a separate checklist-tab table with exact columns Section | Check | Status (+/-) | Comments, containing only rows this review's evidence actually backs (not the Tools/Strategy/AI-Usage sections)",
+      "passed": false,
+      "evidence": "checklist.md's table uses columns '# | Area | Finding | Severity | Evidence (file)' — none of the required column names (Section, Check, Status (+/-), Comments) are used, and there is no +/- status indicator convention. The table instead lists only negative findings (no mix of passing/failing checklist items), with a free-text 'Finding' description and a 'Severity' rating rather than a binary Status column. This does not match the required checklist-tab schema at all, as expected for a skill-specific format the baseline had no reason to know."
+    },
+    {
+      "text": "Checklist table includes a '-' row for 'Unconditional waits are not a common practice' and for 'Framework complies with SOLID' given the God Base Class finding",
+      "passed": false,
+      "evidence": "checklist.md has no rows with the literal check text 'Unconditional waits are not a common practice' or 'Framework complies with SOLID', and no Status (+/-) column exists at all (see prior assertion). The closest related content is row 28 ('38 Thread.sleep calls used instead of explicit waits') and row 11 ('BasePage god object... High'), which cover the same underlying facts but not in the specific checklist-item phrasing/format the assertion requires. Fails as expected given the baseline's unfamiliarity with the skill's specific checklist vocabulary."
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 10,
+    "total": 18,
+    "pass_rate": 0.44
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "Bash": "multiple (file enumeration via find; targeted greps for dead-code, Thread.sleep count, locator pattern counts, .gitignore/logging checks, config.properties usage check)",
+      "Read": "full-content read of every source file in the fixture per transcript (28 files: BasePage + 9 other page objects, 5 utility classes, 7 test classes, 2 wip test classes, pom.xml, testng.xml, ci.yml, config.properties, README.md)",
+      "Write": 3
+    },
+    "total_tool_calls": null,
+    "total_steps": 10,
+    "errors_encountered": 0,
+    "output_chars": 28386,
+    "transcript_chars": 8195
+  },
+  "timing": {
+    "executor_duration_seconds": 242.5,
+    "executor_total_tokens": 98719,
+    "grader_duration_seconds": null,
+    "total_duration_seconds": null
+  },
+  "claims": [
+    {
+      "claim": "38 occurrences of Thread.sleep were found across the codebase, confirmed via grep -rn \"Thread.sleep\" --include=*.java src | wc -l",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Manifest section 7 confirms exactly 38 occurrences of Thread.sleep(...) across 10 files, matching the review's count and methodology exactly."
+    },
+    {
+      "claim": "8 of 10 page objects use auto-generated ext-comp-* IDs and 6 of 10 use positional XPath, confirmed via grep",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Manifest section 9 lists ext-comp-*/positional xpath usage spread across the same roughly 8-9 page-object files as id-based (UserModifyPage, OrderModifyPage, DashboardPage, OrderCreatePage, UserManagement, OrderHandler, ProductModifyPage, InvoiceModifyPage, UserRegisterPage) consistent with 'file touches this pattern' counts of 8/10 and 6/10; the file-prevalence claim is plausible and consistent with manifest evidence, though the review stops short of the full 55-locator / 31%/31%/38% breakdown."
+    },
+    {
+      "claim": "EmailSenderUtil and ScreenshotUtil are fully implemented but never invoked anywhere, confirmed via grep",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Manifest section 18 confirms: 'ScreenshotUtil.java exists... but is never invoked from any test, listener, or @AfterMethod anywhere in the fixture.' EmailSenderUtil's unused status is consistent with the manifest's broader utils-dumping-ground discussion (section 17), which does not list it as wired into any test/listener either."
+    },
+    {
+      "claim": "config.properties is not read anywhere in the codebase (no Properties/ResourceBundle usage found)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Consistent with manifest section 19, which documents the same credentials hardcoded directly as literals in Java source (LoginPage.java:32, FullAdminWorkflowTests.java:35, etc.) rather than being read from config.properties, implying the properties file is indeed not consumed by code."
+    },
+    {
+      "claim": "No `.gitignore` exists anywhere in the repo",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Not directly contradicted by the manifest (which doesn't discuss .gitignore), and independently plausible for a fixture repo; not independently re-verified by the grader via direct filesystem check, but no contradicting evidence found."
+    },
+    {
+      "claim": "All 34 findings in review.md have real, verifiable file/line-level evidence (quality claim: review is thorough and well-evidenced)",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Cross-checking review.md's findings against the manifest's 20 seeded defect categories shows strong overlap: the baseline independently found god-object BasePage (manifest #1), ModifyPage duplication (manifest #5), hardcoded sleeps with correct count (manifest #7), assertion-free tests (manifest #11, though miscounted/misattributed), giant test classes (manifest #12), empty-catch issues qualitatively (manifest #13, but without the quantified count), CI retry masking (manifest #14), WIP package in suite (manifest #15), no smoke tagging (manifest #16), naming violations + utils dumping ground (manifest #17), no failure diagnostics (manifest #18), hardcoded env values (manifest #19), and outdated dependency (manifest #20). It also found real issues the manifest doesn't even enumerate as seeded defects, such as SQL string concatenation in DbConnector and tests hitting what looks like a production environment -- extra value beyond the seeded list. However, 2 of the 20 manifest defect categories were missed entirely: the missing business-step/flow layer (manifest #2) and the quantified locator-distribution/raw-type-leakage specifics (manifest #3's full file list and #4's full method list)."
+    },
+    {
+      "claim": "Review found 34 distinct findings; checklist shows severity breakdown 6 Critical / 11 High / 12 Medium / 3 Low",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Counted directly: checklist.md rows 1-34 tally to 6 Critical (rows 1,2,3,4,15,20,22,28 -- recount: rows marked Critical are 1,2,3,4,15,20,22,28 = 8, not 6), which does NOT match the stated summary of 6 Critical. Recounting from checklist.md: Critical appears in rows 1,2,3,4,15,20,22,28 = 8 occurrences, but the file's own 'Severity counts' section states 'Critical: 6'. This is an internal inconsistency/miscount in the executor's own output -- flagged as an unverified/incorrect quality claim."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [
+      "No user_notes.md file exists in the outputs directory for this run; nothing to summarize."
+    ],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Identifies layer-boundary leakage: at least 2 of the 4 test files...",
+        "reason": "This assertion is satisfied on a literal 'name at least 2 of 4 files' reading even though the review shows no awareness that ProductGridTests.java and InvoiceLookupTests.java also leak raw Selenium calls -- the review discusses those exact two files at length under a totally different finding (no-assertion tests) without noticing the driver.findElement leakage in them. A stronger assertion would require the review to either name all 4 files or explicitly state a file-count/fraction (e.g. 'N of 4 test files'), so that partial/incomplete detection of the pattern doesn't get full credit by coincidence."
+      },
+      {
+        "assertion": "Gives a locator-strategy distribution with real counts/percentages...",
+        "reason": "Worth tightening: 'real counts/percentages' could be satisfied by a file-prevalence count (X of 10 files) that is a fundamentally different metric from a per-locator-declaration percentage breakdown across 3 buckets. The eval author likely wants the latter; consider explicitly stating 'percentage must be computed over individual By locator declarations, not over files' to avoid ambiguity in future grading."
+      },
+      {
+        "reason": "The review's own checklist.md severity-count summary (6 Critical / 11 High / 12 Medium / 3 Low) does not match an actual tally of its own 34-row table, which contains 8 rows marked Critical, not 6 (rows 1, 2, 3, 4, 15, 20, 22, 28). No assertion checks internal arithmetic consistency of the executor's own summary counts, so this real quality defect in the baseline's output went uncaught by every assertion."
+      },
+      {
+        "reason": "No assertion checks whether the review's claimed locator-prevalence counts (8/10 ext-comp-*, 6/10 positional XPath) are independently correct against the fixture -- they are plausible given the manifest's file list but were not independently re-verified by the grader via direct grep against the fixture. An eval author who wants strict correctness grading (not just presence) may want to add a grep-verification step here, similar to what's already implied for the Thread.sleep count."
+      },
+      {
+        "reason": "No assertion checks whether the review flags the missing business-step/flow layer's full breadth (5 occurrences across 3 files) vs. partial detection -- in this case the baseline missed the concept entirely, so it's a moot point here, but future graded runs (e.g. the WITH-skill run) should be checked for whether they name all 3 files and ideally the 5-occurrence count, not just 1-2 of them."
+      }
+    ],
+    "overall": "The assertions are well-targeted at genuinely discriminating outcomes (quantified counts backed by greps, specific file/method names, the skill's exact required format) and correctly produce a low pass rate for this no-skill baseline, which is the expected/correct outcome per the task framing. A few assertions (notably the 'at least 2 of 4' layer-boundary-leakage one) are satisfiable by partial/incomplete detection and would also pass for a review that got lucky on exactly 2 files without recognizing the broader pattern -- consider tightening to require either full enumeration or an explicit fraction. The baseline's own internal arithmetic error (severity-count mismatch) is a real quality defect that no assertion catches; worth adding a consistency check in a future eval iteration."
+  }
+}

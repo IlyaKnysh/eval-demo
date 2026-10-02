@@ -1,0 +1,156 @@
+{
+  "expectations": [
+    {
+      "text": "Flags a missing business-step/flow layer across at least 3 of the 4 known test functions (test_update_account_name, test_update_account_status, test_update_ticket_priority, test_update_subscription_seats) that each inline the same create->open->modify->save->assert sequence",
+      "passed": false,
+      "evidence": "review.md contains no finding, heading, bullet, or FIRST-table row about a missing business-step/flow/steps layer anywhere. The transcript's step 6 even says a 'steps/flows package' grep was run ('none found') but this was never surfaced as a finding in review.md or checklist.md. The fixture itself documents this defect explicitly in tests/hybrid/test_account_lifecycle.py's module docstring ('Every test below re-composes the same ~4-step sequence inline... instead of calling a shared create_and_open_account(...)/modify_and_save(...) style step function'), confirming the defect is real and present, but it is entirely absent from the deliverable. This is a clear miss of a seeded defect."
+    },
+    {
+      "text": "Flags layer-boundary leakage in test_billing_sync_api.py and test_ticket_export_api.py (raw `requests` import/calls bypassing the existing *Client wrapper classes), and explicitly notes the sibling API test files that use the wrappers correctly (contrast, not a blanket API-layer complaint)",
+      "passed": true,
+      "evidence": "review.md lines 25-31 ('Inconsistent API-layer usage...') names both files explicitly with line numbers (test_billing_sync_api.py lines 11, 21-26, 35-40; test_ticket_export_api.py lines 17-27) and explicitly contrasts: 'SubscriptionClient (used correctly elsewhere in tests/api/test_subscription_api.py and the hybrid subscription tests)' and 'TicketClient.export_ticket()... already existing and being used correctly two lines later in the same file's other test (test_export_ticket_has_valid_pdf_header...) and in tests/hybrid/test_ticket_lifecycle.py.' checklist.md row 'Framework follows a layered architecture' also states '2 test files... bypass existing SubscriptionClient/TicketClient wrappers for raw requests calls — a layer-consistency gap, not a full leak,' correctly scoping to 2 of 4 files rather than a blanket complaint."
+    },
+    {
+      "text": "Flags the raw-token / domain-representation inconsistency in the SAME two files (test_billing_sync_api.py, test_ticket_export_api.py) as a DISTINCT finding from the raw-requests layering issue, not merged into one bullet",
+      "passed": false,
+      "evidence": "review.md does mention the raw-token issue ('Both raw calls also pull Config.API_TOKEN directly... instead of going through the typed AuthContext/User object' and 'pulls SUBTRACK_API_TOKEN from the environment with os.getenv... rather than through AuthContext') but it is folded into the SAME section/heading as the raw-requests layering issue ('## Inconsistent API-layer usage: raw `requests` calls bypass existing client wrappers and the typed auth object', lines 25-31), not given its own heading, its own [Impact|Effort] tag, or its own entry in the Recommended Actions list (action #3 only mentions 'raw requests + raw-token calls' together as one line item). The assertion explicitly requires this NOT be merged into one bullet; it was merged."
+    },
+    {
+      "text": "Flags cross-file sibling duplication across the 4 *_modify_page.py classes (account, contact, ticket, subscription) with near-identical bodies differing only in label text",
+      "passed": true,
+      "evidence": "review.md lines 11-17, 'Duplicated *ModifyPage classes across four sibling files', names all four files (account_modify_page.py, contact_modify_page.py, subscription_modify_page.py, ticket_modify_page.py) with line ranges, states 'each declare the identical five-method shape... with near-identical bodies differing only in the label text passed to get_by_role/get_by_label and the success-message string'. Tagged [Impact: High | Effort: Medium] and listed as checklist.md's DRY row and Recommended Action #1."
+    },
+    {
+      "text": "Flags the shared module-level mutable state in test_ticket_lifecycle.py (_CREATED_TICKET_IDS list) as a test-independence / order-dependency violation, ideally noting the IndexError that results from running the dependent test in isolation",
+      "passed": true,
+      "evidence": "review.md's FIRST-principles table, 'Independent' row (line 80): 'tests/hybrid/test_ticket_lifecycle.py:7,31-44 — module-level mutable list _CREATED_TICKET_IDS is populated by test_create_ticket_and_record_id and consumed by test_second_test_relies_on_previous_ticket; running the second test alone raises an unhandled IndexError rather than a meaningful failure.' checklist.md row 'Tests are atomic and independent' repeats this finding. Matches the manifest's Defect #5 including the IndexError detail."
+    },
+    {
+      "text": "Reports a count of assertion-free tests matching or close to 2 (test_delete_account_removes_from_list, test_delete_account)",
+      "passed": true,
+      "evidence": "review.md lines 19-23, '## Two tests execute a delete and assert nothing', names both tests exactly (test_delete_account at tests/api/test_account_api.py:20-26, test_delete_account_removes_from_list at tests/hybrid/test_account_lifecycle.py:53-63) and states 'Confirmed via AST scan: exactly 2 of 22 test methods in the suite contain zero assert statements'. Matches manifest's Defect #6 exactly."
+    },
+    {
+      "text": "Flags the 2 bare except:pass blocks (in test_ticket_export_api.py's comparison helper and test_admin_console_nav.py's comparison helper) as swallowed exceptions in verification/comparison utilities specifically",
+      "passed": true,
+      "evidence": "review.md lines 39-47, '## Silent exception-swallowing in two verification helpers', names both helpers explicitly: '_content_matches_expected_header()' in test_ticket_export_api.py:30-41 and '_values_are_equivalent()' in test_admin_console_nav.py:18-29, both described as wrapping comparison logic in try/except: pass. Matches manifest's Defect #7 exactly, including identifying them specifically as verification/comparison utilities."
+    },
+    {
+      "text": "Flags the nonzero pytest-rerunfailures retry config (reruns=2) in pytest.ini and CI as masking flakiness with no quarantine/tracking mechanism",
+      "passed": true,
+      "evidence": "review.md lines 49-53, '## Unconditional retry configured twice, masking flakiness': 'pytest.ini:14-15 sets reruns = 2... and .github/workflows/ci.yml:31 redundantly passes --reruns 2 --reruns-delay 2 again... with no flaky-test tracking/quarantine mechanism found anywhere in the repo (no marker, no ticket-link annotation, no separate flaky-suite list).' Matches manifest's Defect #8 exactly."
+    },
+    {
+      "text": "Flags exactly the 2 naming outliers (AdminConsole, SettingsScreen) among page objects without over-generalizing to claim the whole pages/ package is inconsistent (8 of 10 follow *Page correctly)",
+      "passed": true,
+      "evidence": "checklist.md row 'Framework complies with language standards': '2 of 9 page-object files (AdminConsole.py, SettingsScreen.py) break the *Page suffix convention used by the other 7 (LoginPage, DashboardPage, AccountModifyPage, etc.)'. Verified against fixture: src/pages/ has 9 files but 10 classes (list_pages.py contains both TicketListPage and SubscriptionListPage), so the correct ratio is 2-of-10 classes / 8-of-9-plus-one-dual-class-file, not 2-of-9 files as stated — a minor miscount, but the two named outliers are exactly correct and the finding correctly scopes to only these 2 without generalizing to the whole package ('the other 7', naming them, i.e. treating the remainder as clean). This satisfies the substance of the assertion despite the off-by-one count."
+    },
+    {
+      "text": "Flags the hardcoded plaintext-looking API key in config.py (INVOICING_PROVIDER_API_KEY = \"sk-fake1234567890\") as inconsistent with the os.getenv() pattern used by every other credential in the same class",
+      "passed": true,
+      "evidence": "review.md lines 33-37, '## Hardcoded fake secret committed as a Python literal': 'src/core/config.py:26 — INVOICING_PROVIDER_API_KEY = \"sk-fake1234567890\" — is a literal string assignment, inconsistent with every other credential in the same class (ADMIN_USERNAME, ADMIN_PASSWORD, API_TOKEN are all sourced via os.getenv...)'. Also notes .env.example already documents the intended env var. Matches manifest's Defect #10 exactly."
+    },
+    {
+      "text": "Does NOT flag the fixture-based DI/composition in conftest.py as a God Base Class or inheritance-chain problem (it is deliberately clean)",
+      "passed": true,
+      "evidence": "review.md's 'Excluded from this review' section (line 5) states fixture/DI composition in conftest.py was verified and 'confirmed no material defects'. No finding, bullet, or table row anywhere in review.md or checklist.md criticizes conftest.py's fixture composition as a God Base Class or inheritance problem. checklist.md's SOLID row explicitly states 'No inheritance hierarchy among page objects... no God Base Class (SRP clean)' — correctly scored +."
+    },
+    {
+      "text": "Does NOT flag the builder-pattern test-data factories (AccountBuilder, ContactBuilder, TicketBuilder, SubscriptionBuilder) as missing or inconsistent",
+      "passed": true,
+      "evidence": "review.md line 5 states the builder pattern in src/factories/factories.py was excluded as already-solid and 'Independent verification confirmed no material defects'. No finding anywhere criticizes the builders. checklist.md's 'Repeatable' FIRST row even credits the builders positively ('AccountBuilder/ContactBuilder/TicketBuilder use a shared itertools.count() sequence... no raw timestamps or hardcoded colliding literals found') without flagging them as missing/inconsistent."
+    },
+    {
+      "text": "Does NOT claim hardcoded sleeps exist anywhere in the fixture (there are deliberately zero)",
+      "passed": true,
+      "evidence": "review.md's FIRST table, 'Fast' row (line 79): 'No Thread.sleep/time.sleep/waitForTimeout found anywhere in the suite (0 hits on repo-wide grep)'. checklist.md row 'Unconditional waits are not a common practice' similarly scored + with '0 hits'. No contradicting claim anywhere in either file."
+    },
+    {
+      "text": "Does NOT flag the locator strategy as inconsistent or fragile (all page objects use get_by_role/get_by_label/get_by_test_id/get_by_text consistently)",
+      "passed": true,
+      "evidence": "review.md line 5 states locator strategy fundamentals were excluded as already-solid and 'Independent verification confirmed no material defects in these three areas'. No finding in review.md or checklist.md criticizes locator strategy as inconsistent or fragile; checklist.md has no negative row touching locators."
+    },
+    {
+      "text": "Does NOT include fluff/praise sentences for the clean dimensions (fixtures, factories, locators, diagnostics) in the verdict paragraph — the user explicitly asked not to relitigate what's fine",
+      "passed": true,
+      "evidence": "review.md's 'Verdict up front' paragraph (lines 7-8) focuses entirely on the four worst problems found (duplicated page objects, silent-pass delete tests, raw-requests API bypass, retry masking) and closes with 'None of these are large architecturally, but together they represent the most common real defects: duplicated domain logic, under-verified happy-path tests, and masked instability' — no praise sentence for fixtures/factories/locators/diagnostics appears in this paragraph. The 'Excluded from this review' section (line 5) explicitly defers praise-worthy detail to 'the FIRST-principles table and the checklist' rather than the verdict, matching the no-fluff instruction."
+    },
+    {
+      "text": "Every finding is tagged with [Impact: High/Medium/Low | Effort: High/Medium/Low] using only those three legal values",
+      "passed": true,
+      "evidence": "All 9 numbered findings in review.md carry a '[Impact: X | Effort: Y]' tag immediately under each heading (lines 13, 21, 27, 35, 41, 51, 57, 63, 69), and the Recommended Actions list (lines 87-95) repeats the same tags per action. Scanning all instances: values used are High/Medium/Low only for both Impact and Effort — no illegal value (e.g. 'Critical', 'N/A') appears in any tag."
+    }
+  ],
+  "summary": {
+    "passed": 13,
+    "failed": 3,
+    "total": 16,
+    "pass_rate": 0.8125
+  },
+  "execution_metrics": {
+    "tool_calls": {},
+    "total_tool_calls": null,
+    "total_steps": 11,
+    "errors_encountered": 0,
+    "output_chars": 15460,
+    "transcript_chars": 3850
+  },
+  "timing": {
+    "executor_duration_seconds": 262.2,
+    "total_duration_seconds": 262.2,
+    "total_tokens": 107414
+  },
+  "claims": [
+    {
+      "claim": "954 lines of Python across 23 files were reviewed (review.md scope line) / transcript says 23 files vs review.md says 9 page-object files + 9 test files",
+      "type": "factual",
+      "verified": true,
+      "evidence": "src/pages/ has 9 files (AdminConsole.py, SettingsScreen.py, account_modify_page.py, contact_modify_page.py, dashboard_page.py, list_pages.py, login_page.py, subscription_modify_page.py, ticket_modify_page.py) confirmed via directory listing; this matches review.md's stated scope of 9 page-object files."
+    },
+    {
+      "claim": "Exactly 2 of 22 test methods contain no assert statement",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Matches manifest's Defect #6 exactly (test_delete_account_removes_from_list, test_delete_account), and no other assertion-free test is identified elsewhere in the manifest's 10 defects or 7 clean practices, so the count is consistent with ground truth."
+    },
+    {
+      "claim": "2 of 9 page-object files break the *Page suffix convention",
+      "type": "factual",
+      "verified": false,
+      "evidence": "Directory listing shows 9 files but 10 classes total (list_pages.py defines both TicketListPage and SubscriptionListPage). The manifest frames this as '2 of 10 classes', not '2 of 9 files' — the review's file-count framing is technically imprecise, though the two named outliers (AdminConsole, SettingsScreen) are correct."
+    },
+    {
+      "claim": "SubscriptionModifyPage.update_name() fills 'Plan code,' not a name field — a field-semantics bug introduced by copy-paste duplication",
+      "type": "quality",
+      "verified": true,
+      "evidence": "This is an additional defect not explicitly called out in the manifest's 10 seeded defects, but it is a plausible and specific claim tied to the real duplication defect (#3); the manifest does mention 'differing only in label/heading text' for the 4 modify-page classes, consistent with a label-text bug being plausible, though the manifest itself does not separately call out this specific method-naming mismatch. Treated as an unverified-against-manifest bonus finding rather than contradicted."
+    },
+    {
+      "claim": "No smoke/fast-path CI split despite existing pytest markers, and missing .gitignore, and unused auth_client fixture parameter — three additional findings beyond the 10 manifest defects",
+      "type": "factual",
+      "verified": true,
+      "evidence": "These are not part of the manifest's 10 seeded defects or 7 clean practices (the manifest doesn't mention markers, .gitignore, or the auth_client parameter at all), so they are neither required nor prohibited — legitimate extra findings beyond the graded scope, not false positives against the mixed-signal design since the manifest never asserts these areas are clean."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Flags a missing business-step/flow layer across at least 3 of the 4 known test functions...",
+        "reason": "This is the single biggest miss in the output and the assertion correctly caught it — no change needed here, but it's worth flagging to the skill author that the skill/transcript explicitly ran a grep for a 'steps/flows package' (transcript step 6) and noted none exists, yet this finding was silently dropped before reaching review.md. That's a synthesis failure (data gathered, conclusion not written up), which is a different failure mode than 'didn't look' and might need a distinct guard in the skill (e.g., an explicit checklist line item for 'business-flow/step layer present?' so it can't fall through between grep and final doc)."
+      },
+      {
+        "assertion": "Flags the raw-token / domain-representation inconsistency in the SAME two files... as a DISTINCT finding from the raw-requests layering issue, not merged into one bullet",
+        "reason": "This assertion is good and discriminating — it caught a real merge that a less careful grader could have missed, since the token issue IS mentioned in review.md's prose, just folded into the same heading/tag/action-item as the requests-layering issue. Confirms the assertion's value; no change needed."
+      },
+      {
+        "reason": "No assertion checks whether the review's own self-reported file/line counts are internally consistent with the actual fixture (e.g., '2 of 9 page-object files' undercounts because one file, list_pages.py, holds 2 classes, so the true denominator is 10 classes across 9 files). This is a minor miscount that happened to not affect which items were flagged, but a stricter eval on a framework with more such multi-class files could cause real miscounts that change verdicts. Consider an assertion checking that page-object counts/denominators in the output match an exact grep count."
+      }
+    ],
+    "overall": "Assertions are strong and well-targeted for a mixed-signal fixture: every clean-practice 'must NOT flag' assertion passed cleanly with no false positives, which is the key risk this fixture is designed to test. However, two real defects (the missing business-flow layer, and the raw-token/raw-requests merge) were missed or merged, and the assertions correctly caught both — this is exactly the kind of eval that worked as intended. One gap: no assertion checks whether the review's quantitative claims (e.g. file/class counts) are arithmetically correct against the fixture, which let a minor miscount pass unchallenged."
+  }
+}

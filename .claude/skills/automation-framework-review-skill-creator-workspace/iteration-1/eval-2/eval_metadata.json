@@ -1,0 +1,23 @@
+{
+  "eval_id": 2,
+  "eval_name": "medium-python-mixed-signal-review",
+  "prompt": "We have a Python/pytest/Playwright hybrid API+UI framework for our SubTrack Admin product at .claude/skills/automation-framework-review-deepeval/evals/fixtures/medium-framework (relative to repo root c:\\Users\\knysh\\source\\repos\\evals-demo). Please audit it against best practices and tell us what's actually wrong — we already think some parts of it (fixtures, test-data builders, locators) are solid so don't waste our time relitigating what's fine. Save your findings as review.md in the eval directory.",
+  "assertions": [
+    "Flags a missing business-step/flow layer across at least 3 of the 4 known test functions (test_update_account_name, test_update_account_status, test_update_ticket_priority, test_update_subscription_seats) that each inline the same create->open->modify->save->assert sequence",
+    "Flags layer-boundary leakage in test_billing_sync_api.py and test_ticket_export_api.py (raw `requests` import/calls bypassing the existing *Client wrapper classes), and explicitly notes the sibling API test files that use the wrappers correctly (contrast, not a blanket API-layer complaint)",
+    "Flags the raw-token / domain-representation inconsistency in the SAME two files (test_billing_sync_api.py, test_ticket_export_api.py) as a DISTINCT finding from the raw-requests layering issue, not merged into one bullet",
+    "Flags cross-file sibling duplication across the 4 *_modify_page.py classes (account, contact, ticket, subscription) with near-identical bodies differing only in label text",
+    "Flags the shared module-level mutable state in test_ticket_lifecycle.py (_CREATED_TICKET_IDS list) as a test-independence / order-dependency violation, ideally noting the IndexError that results from running the dependent test in isolation",
+    "Reports a count of assertion-free tests matching or close to 2 (test_delete_account_removes_from_list, test_delete_account)",
+    "Flags the 2 bare except:pass blocks (in test_ticket_export_api.py's comparison helper and test_admin_console_nav.py's comparison helper) as swallowed exceptions in verification/comparison utilities specifically",
+    "Flags the nonzero pytest-rerunfailures retry config (reruns=2) in pytest.ini and CI as masking flakiness with no quarantine/tracking mechanism",
+    "Flags exactly the 2 naming outliers (AdminConsole, SettingsScreen) among page objects without over-generalizing to claim the whole pages/ package is inconsistent (8 of 10 follow *Page correctly)",
+    "Flags the hardcoded plaintext-looking API key in config.py (INVOICING_PROVIDER_API_KEY = \"sk-fake1234567890\") as inconsistent with the os.getenv() pattern used by every other credential in the same class",
+    "Does NOT flag the fixture-based DI/composition in conftest.py as a God Base Class or inheritance-chain problem (it is deliberately clean)",
+    "Does NOT flag the builder-pattern test-data factories (AccountBuilder, ContactBuilder, TicketBuilder, SubscriptionBuilder) as missing or inconsistent",
+    "Does NOT claim hardcoded sleeps exist anywhere in the fixture (there are deliberately zero)",
+    "Does NOT flag the locator strategy as inconsistent or fragile (all page objects use get_by_role/get_by_label/get_by_test_id/get_by_text consistently)",
+    "Does NOT include fluff/praise sentences for the clean dimensions (fixtures, factories, locators, diagnostics) in the verdict paragraph — the user explicitly asked not to relitigate what's fine",
+    "Every finding is tagged with [Impact: High/Medium/Low | Effort: High/Medium/Low] using only those three legal values"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "eval_id": 3,
+  "eval_name": "clean-typescript-false-positive-check",
+  "prompt": "Review the Playwright/TypeScript test framework in .claude/skills/automation-framework-review-deepeval/evals/fixtures/clean-framework (relative to repo root c:\\Users\\knysh\\source\\repos\\evals-demo) against our usual best-practices checklist (layering, SOLID, DRY, test design, locators, error handling, waits, naming). We think this one's in pretty good shape but want a second opinion before sign-off. Save the review as review.md.",
+  "assertions": [
+    "Does NOT claim a God Base Class exists (BasePage.ts is deliberately slim: goto()/waitForLoad() only)",
+    "Does NOT claim a missing business-step/flow layer exists (src/flows/orderFlows.ts, userFlows.ts, authFlows.ts are the real flow layer and every test uses them)",
+    "Does NOT claim layer-boundary leakage into tests (no test file imports @playwright/test directly per the fixture's design)",
+    "Does NOT claim cross-file sibling duplication between OrderModifyPage and UserModifyPage as an uncontrolled DRY violation (they share logic via the composed EntityModifyPanel helper, which is the correct fix pattern, not the defect)",
+    "Does NOT claim hardcoded sleeps exist (zero page.waitForTimeout() calls in the fixture)",
+    "Does NOT claim fragile/positional locators exist (fixture uses only getByRole/getByLabel/getByTestId)",
+    "Does NOT flag EntityModifyPanel for not ending in 'Page' as a naming inconsistency (it is explicitly documented as intentionally not a page object)",
+    "Does NOT flag submitLoginAttempt as a duplicate/inconsistent second login method (it is a distinct, correctly-named method for the negative-login test path)",
+    "Does NOT flag the per-test UI login in adminSession/standardSession fixtures as a missing storageState optimization framed as a defect (an optional enhancement note is fine; calling it wrong is not)",
+    "Does NOT claim test-data cleanup/teardown is missing (the createdRecords fixture registers and tears down all 4 data-creating specs)",
+    "Does NOT claim retries/trace capture are misconfigured (retries: 0 deliberately pairs with trace: 'on-first-retry'... this is documented and correct)",
+    "If thorough, correctly surfaces the missing package-lock.json / npm ci mismatch (CI runs `npm ci` but no lockfile is committed) as a genuine, non-seeded defect",
+    "If thorough, correctly surfaces the tsconfig.json lib omitting ES2022 breaking the `cause` property typecheck in errors.ts as a genuine, non-seeded defect",
+    "If thorough, correctly surfaces the duplicated nextSuffix() helper across orderFactory.ts and userFactory.ts as a real cross-file duplication worth extracting",
+    "Produces a FIRST-principles table with mostly passing/clean verdicts, not manufactured failures",
+    "The verdict-up-front paragraph does not read as a tour of what's good (no 'the architecture is clean, locators are stable, waits are solid' style praise) — if genuinely little is wrong, it says so briefly rather than touring strengths",
+    "Total finding count is low (roughly 0-5 real findings), consistent with this being a deliberately clean fixture — a review padding this out with 10+ findings to seem thorough is a failure mode to flag"
+  ]
+}

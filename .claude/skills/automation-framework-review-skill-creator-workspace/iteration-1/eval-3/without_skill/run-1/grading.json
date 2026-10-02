@@ -1,0 +1,185 @@
+{
+  "expectations": [
+    {
+      "text": "Does NOT claim a God Base Class exists (BasePage.ts is deliberately slim: goto()/waitForLoad() only)",
+      "passed": true,
+      "evidence": "review.md 'What's done well': 'No God base class. BasePage is intentionally thin (goto, waitForLoad) and cross-cutting concerns ... are composed via Playwright fixtures ... rather than piled onto a shared superclass.' No claim of a God base class anywhere in the document."
+    },
+    {
+      "text": "Does NOT claim a missing business-step/flow layer exists (src/flows/orderFlows.ts, userFlows.ts, authFlows.ts are the real flow layer and every test uses them)",
+      "passed": true,
+      "evidence": "review.md's layering bullet states 'tests/ only calls flow functions (src/flows/) and page-object public methods' as a strength. Transcript step 5 confirms flows were read and confirmed as 'a business-verb function composing page-object calls.' No claim of a missing flow layer."
+    },
+    {
+      "text": "Does NOT claim layer-boundary leakage into tests (no test file imports @playwright/test directly per the fixture's design)",
+      "passed": true,
+      "evidence": "review.md: 'nothing in tests/ imports Page or Locator directly' listed under 'What's done well'; Checklist table rates 'Layering' as 'Strong, no violations found.' No leakage claimed."
+    },
+    {
+      "text": "Does NOT claim cross-file sibling duplication between OrderModifyPage and UserModifyPage as an uncontrolled DRY violation (they share logic via the composed EntityModifyPanel helper, which is the correct fix pattern, not the defect)",
+      "passed": true,
+      "evidence": "review.md: 'DRY via composition, not inheritance. EntityModifyPanel factors out the save/cancel/toast/field-fill logic shared by OrderModifyPage and UserModifyPage instead of duplicating it.' This is praised, not flagged as a violation."
+    },
+    {
+      "text": "Does NOT claim hardcoded sleeps exist (zero page.waitForTimeout() calls in the fixture)",
+      "passed": true,
+      "evidence": "No mention of waitForTimeout or sleeps as an issue anywhere in review.md. Transcript step 10 notes a targeted grep for 'waitForTimeout, sleep(' found nothing beyond the networkidle finding."
+    },
+    {
+      "text": "Does NOT claim fragile/positional locators exist (fixture uses only getByRole/getByLabel/getByTestId)",
+      "passed": true,
+      "evidence": "review.md: 'Locator strategy matches current Playwright guidance. getByRole, getByLabel, getByTestId are used throughout; no CSS descent chains, no XPath, no positional nth() reliance.' Checklist table rates Locators 'Strong.'"
+    },
+    {
+      "text": "Does NOT flag EntityModifyPanel for not ending in 'Page' as a naming inconsistency (it is explicitly documented as intentionally not a page object)",
+      "passed": true,
+      "evidence": "No mention of EntityModifyPanel's name/naming anywhere in review.md as an issue; Naming checklist row says 'Strong, matches documented conventions with no exceptions found.'"
+    },
+    {
+      "text": "Does NOT flag submitLoginAttempt as a duplicate/inconsistent second login method (it is a distinct, correctly-named method for the negative-login test path)",
+      "passed": true,
+      "evidence": "submitLoginAttempt is not mentioned anywhere in review.md as an issue or at all; no duplicate-method finding exists."
+    },
+    {
+      "text": "Does NOT flag the per-test UI login in adminSession/standardSession fixtures as a missing storageState optimization framed as a defect (an optional enhancement note is fine; calling it wrong is not)",
+      "passed": true,
+      "evidence": "storageState, adminSession, and standardSession are not mentioned anywhere in review.md. Nothing is flagged on this topic, so no defect-framing violation occurred."
+    },
+    {
+      "text": "Does NOT claim test-data cleanup/teardown is missing (the createdRecords fixture registers and tears down all 4 data-creating specs)",
+      "passed": true,
+      "evidence": "review.md: 'cleanup is handled by a dedicated createdRecords fixture that runs teardown even on failure, in reverse-creation order.' Listed as a strength, not a gap."
+    },
+    {
+      "text": "Does NOT claim retries/trace capture are misconfigured (retries: 0 deliberately pairs with trace: 'on-first-retry'... this is documented and correct)",
+      "passed": true,
+      "evidence": "review.md: 'retries: 0 is a deliberate, documented policy (\"fix flaky tests, don't hide them\")' — listed under Config hygiene as correct, not a misconfiguration. No trace-capture criticism anywhere."
+    },
+    {
+      "text": "If thorough, correctly surfaces the missing package-lock.json / npm ci mismatch (CI runs `npm ci` but no lockfile is committed) as a genuine, non-seeded defect",
+      "passed": false,
+      "evidence": "review.md's Findings section lists only 3 items (networkidle wait, findGridRowByText nit, buildUser() redundancy nit). No mention of package-lock.json, npm ci, or lockfile anywhere in the document, despite the file enumeration in the transcript listing package.json and the CI workflow file as read."
+    },
+    {
+      "text": "If thorough, correctly surfaces the tsconfig.json lib omitting ES2022 breaking the `cause` property typecheck in errors.ts as a genuine, non-seeded defect",
+      "passed": false,
+      "evidence": "review.md contains no mention of tsconfig.json's `lib` setting, ES2022, or a typecheck failure on the `cause` property in errors.ts, even though tsconfig.json and errors.ts were both read per the transcript (steps 2 and 7)."
+    },
+    {
+      "text": "If thorough, correctly surfaces the duplicated nextSuffix() helper across orderFactory.ts and userFactory.ts as a real cross-file duplication worth extracting",
+      "passed": false,
+      "evidence": "review.md discusses uniqueness-suffix logic only as a positive ('Uniqueness handling in the factories ... is a thoughtful, correct answer') and never calls out that nextSuffix() is byte-for-byte duplicated across both factory files. Transcript step 6 confirms this duplication was never noticed as a finding."
+    },
+    {
+      "text": "Produces a FIRST-principles table with mostly passing/clean verdicts, not manufactured failures",
+      "passed": true,
+      "evidence": "review.md has a 'Checklist coverage' table with rows Layering/SOLID/DRY/Test design/Locators/Error handling/Waits/Naming, with verdicts 'Strong' for 7 of 8 rows and only 'One real finding' for Waits. No manufactured failures; the table is overwhelmingly clean. (Note: the table is organized by the review's own stated dimensions rather than the literal FIRST acronym — Fast/Independent/Repeatable/Self-validating/Timely — but satisfies the substantive intent of a mostly-clean checklist table.)"
+    },
+    {
+      "text": "The verdict-up-front paragraph does not read as a tour of what's good (no 'the architecture is clean, locators are stable, waits are solid' style praise) — if genuinely little is wrong, it says so briefly rather than touring strengths",
+      "passed": false,
+      "evidence": "review.md's opening Summary paragraph reads: 'Layering is clean and consistently enforced, there's no base-class bloat, test data goes through builders, locators are semantic, and error handling follows one clear convention throughout.' This is close to verbatim the forbidden praise-touring pattern the assertion calls out (clean architecture / stable locators / solid waits style), rather than a brief, low-key verdict."
+    },
+    {
+      "text": "Total finding count is low (roughly 0-5 real findings), consistent with this being a deliberately clean fixture — a review padding this out with 10+ findings to seem thorough is a failure mode to flag",
+      "passed": true,
+      "evidence": "review.md's 'Findings' section lists exactly 3 items (1 Low, 2 Nits), well within the 0-5 range, with no padding. (Note: the low count is partly because 3 genuine unseeded bugs were missed entirely rather than purely reflecting restraint — see failed assertions 12-14 above.)"
+    }
+  ],
+  "summary": {
+    "passed": 14,
+    "failed": 4,
+    "total": 18,
+    "pass_rate": 0.78
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "note": "transcript.md is a narrative summary of steps, not a raw tool-call log, so exact per-tool invocation counts are not recoverable. Narrative describes: 1 recursive file enumeration, ~20+ individual file reads (config files, all 6 page objects, 3 flow files, 2 factories, 3 utils/types files, 5 spec files, CONTRIBUTING.md/CI workflow/.env.example), and 2 targeted greps (anti-pattern scan, waitForLoad call-site count)."
+    },
+    "total_tool_calls": null,
+    "total_steps": 10,
+    "errors_encountered": 0,
+    "output_chars": 10153,
+    "transcript_chars": 6758
+  },
+  "timing": {
+    "executor_duration_seconds": 153.8,
+    "grader_duration_seconds": null,
+    "total_duration_seconds": 153.8,
+    "raw_timing_json": {
+      "total_tokens": 80883,
+      "duration_ms": 153824,
+      "total_duration_seconds": 153.8
+    }
+  },
+  "claims": [
+    {
+      "claim": "No test file imports Page or Locator directly (verified via grep-equivalent reading of all 5 spec files)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Matches manifest §A: 'No test file imports anything from @playwright/test directly — confirmed via repo-wide grep.' Consistent with ground truth."
+    },
+    {
+      "claim": "BasePage is intentionally thin (goto/waitForLoad only), no God base class",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Matches manifest §B exactly: 'src/core/BasePage.ts is intentionally slim: goto() and waitForLoad() only.'"
+    },
+    {
+      "claim": "EntityModifyPanel is a genuinely reusable composed helper, not a second base class in disguise",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Matches manifest §B: 'EntityModifyPanel.ts is a composed helper ... not a shared base class — documented explicitly in its own doc comment.'"
+    },
+    {
+      "claim": "waitForLoad() is called from exactly three places, all followed by an auto-retrying expect(...).toBeVisible()",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Plausible and internally consistent with manifest's description of DashboardPage.goToOrders/goToUsers and LoginPage.loginAs as the call sites; no contradicting information in the manifest. Cannot independently re-verify exact line numbers without reading the fixture source directly, but the claim is specific and consistent with the rest of the review's verified claims."
+    },
+    {
+      "claim": "buildUser()'s conditional withX() calls are redundant with the final spread, and buildOrder() does not have the equivalent redundancy",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Code snippet quoted directly in review.md Finding #3 shows the redundant pattern; this is a plausible, specific, falsifiable code claim with an exact file:line citation (src/factories/userFactory.ts:57-63) and is not contradicted by the manifest."
+    },
+    {
+      "claim": "No violations found in layering, SOLID, locators, error-handling consistency, test independence/design, or naming conventions",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Consistent with manifest's extensive documentation of these areas as deliberately well-implemented (§A, B, D, F, H, O). However, the review's confidence in 'no violations' is undercut by the 3 missed genuine defects (lockfile, tsconfig/ES2022, nextSuffix duplication), none of which fall under the 8 checklist categories it scored, so the 'no violations in the 8 listed categories' claim itself still holds."
+    },
+    {
+      "claim": "No findings were manufactured to pad the list; the three logged are the only issues that held up under direct source inspection",
+      "type": "process",
+      "verified": false,
+      "evidence": "Contradicted in substance: the review missed three real, independently-discoverable, non-seeded defects documented in the manifest's 'Unseeded but genuine bugs' section (lockfile/npm ci mismatch, tsconfig ES2022 typecheck break, duplicated nextSuffix()). 'The only issues that held up' overstates thoroughness — the review was not actually exhaustive despite its narrative claiming a full read of every relevant file (tsconfig.json, package.json, both factories, CI workflow were all reportedly read per transcript steps 2, 6, 9)."
+    },
+    {
+      "claim": "Did not open, search for, or reference any file under automation-framework-review-deepeval beyond the clean-framework fixture itself",
+      "type": "process",
+      "verified": true,
+      "evidence": "No mention of any other skill directory, manifest file, or deepeval scaffolding appears anywhere in review.md or the transcript's described reading list; the file list in transcript step 1 is scoped entirely to the fixture."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Produces a FIRST-principles table with mostly passing/clean verdicts, not manufactured failures",
+        "reason": "The phrase 'FIRST-principles table' is ambiguous — it could mean the literal FIRST test-design acronym (Fast/Independent/Repeatable/Self-validating/Timely) or a generic 'table built from first principles.' review.md's table uses neither framing literally (it uses Layering/SOLID/DRY/Test design/Locators/Error handling/Waits/Naming, matching the prompt's own checklist categories instead). Graded as a pass on substantive intent, but the assertion's wording should be clarified to avoid grader disagreement on future runs."
+      },
+      {
+        "reason": "No assertion checks the review's self-assessed thoroughness/confidence language against the fact that it missed 3 real, discoverable, non-seeded bugs the manifest flags as findable from files the executor's own transcript says it read (tsconfig.json, package.json, CI workflow, both factories). The review's closing claim ('No findings were manufactured... the three logged are the only issues that held up under direct source inspection') is an overclaim of completeness that goes uncaught by any PASS/FAIL assertion, since assertions 12-14 only check for presence of specific findings, not for the overclaim of exhaustiveness paired with their absence. Consider adding an assertion that checks whether the review hedges its completeness claims appropriately given depth of file coverage."
+      },
+      {
+        "reason": "Assertion 16 ('verdict-up-front paragraph does not read as a tour of what's good') is a good, discriminating check — it correctly caught a real failure mode here (the Summary paragraph is almost a template match for the forbidden praise-touring style). This is a well-designed assertion worth keeping as-is."
+      }
+    ],
+    "overall": "14/18 pass. The 4 failures cluster into two real gaps: (1) three genuine, non-seeded, independently-discoverable defects (lockfile/npm-ci mismatch, tsconfig ES2022 typecheck break, duplicated nextSuffix()) were missed despite the transcript claiming the relevant files were read, and (2) the summary paragraph reads as exactly the forbidden 'tour of strengths' style the eval is designed to catch. No false positives were found — all 11 false-positive-guard assertions passed cleanly; the review never manufactured a defect from the fixture's intentionally-good patterns. The eval is well-constructed and discriminating: it rewards avoiding false positives (which this run did well) while separately penalizing under-thoroughness and stylistic overclaiming (which this run exhibited)."
+  }
+}
