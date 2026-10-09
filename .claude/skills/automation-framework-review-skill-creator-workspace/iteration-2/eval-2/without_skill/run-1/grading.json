@@ -1,0 +1,156 @@
+{
+  "expectations": [
+    {
+      "text": "Flags a missing business-step/flow layer across at least 3 of the 4 known test functions (test_update_account_name, test_update_account_status, test_update_ticket_priority, test_update_subscription_seats) that each inline the same create->open->modify->save->assert sequence",
+      "passed": true,
+      "evidence": "M6 'Repeated hybrid steps are written out inline in every test': 'create via API -> open in UI -> modify -> save -> verify via API' is copied in test_account_lifecycle.py:13-50 (both update tests), test_subscription_lifecycle.py:8-27 (update_subscription_seats) and test_ticket_lifecycle.py:10-28 (update_ticket_priority). All 4 are covered, and it suggests extracting step helpers."
+    },
+    {
+      "text": "Flags layer-boundary leakage in test_billing_sync_api.py and test_ticket_export_api.py (raw `requests` import/calls bypassing the existing *Client wrapper classes), and explicitly notes the sibling API test files that use the wrappers correctly (contrast, not a blanket API-layer complaint)",
+      "passed": false,
+      "evidence": "H5 mentions that two files bypass the clients (test_billing_sync_api.py:21-26,35-40; test_ticket_export_api.py:21-26), and notes that trigger_billing_sync is unused and export_ticket exists. This sits inside a broader 'API auth is inconsistent and mostly absent' finding, and it never names test_account_api.py / test_subscription_api.py as the siblings that use the wrappers correctly."
+    },
+    {
+      "text": "Flags the raw-token / domain-representation inconsistency in the SAME two files (test_billing_sync_api.py, test_ticket_export_api.py) as a DISTINCT finding from the raw-requests layering issue, not merged into one bullet",
+      "passed": false,
+      "evidence": "Merged: H5's bullet 'test_billing_sync_api.py:21-26 and 35-40 use raw requests.post with Config.API_TOKEN' and 'test_ticket_export_api.py:21-26 uses raw requests.get with os.getenv(\"SUBTRACK_API_TOKEN\")' put the raw-token and raw-requests issues in the same bullets, inside one finding."
+    },
+    {
+      "text": "Flags cross-file sibling duplication across the 4 *_modify_page.py classes (account, contact, ticket, subscription) with near-identical bodies differing only in label text",
+      "passed": true,
+      "evidence": "L2: 'The four *ModifyPage classes are near-identical; they could share a parameterized base.' L1 adds that update_name on Subscription/TicketModifyPage is a copy-paste name. The coverage is thin (no per-file evidence or 'only labels differ' detail), but the cross-file duplication is correctly flagged."
+    },
+    {
+      "text": "Flags the shared module-level mutable state in test_ticket_lifecycle.py (_CREATED_TICKET_IDS list) as a test-independence / order-dependency violation, ideally noting the IndexError that results from running the dependent test in isolation",
+      "passed": true,
+      "evidence": "H3: 'tests/hybrid/test_ticket_lifecycle.py:7, 31-44: test_second_test_relies_on_previous_ticket reads _CREATED_TICKET_IDS[-1]... Running it alone, under -k, under pytest-xdist... gives an IndexError or a stale ID.'"
+    },
+    {
+      "text": "Reports a count of assertion-free tests matching or close to 2 (test_delete_account_removes_from_list, test_delete_account)",
+      "passed": false,
+      "evidence": "No count of assertion-free tests is reported. The H1 table correctly labels test_delete_account 'No assertion' and test_delete_account_removes_from_list 'with no assertion that...'. But the only count the review gives is 'At least 7 tests assert nothing meaningful, or test something other than what their name says' (Bottom line). That number mixes no-assert, tautological and misnamed tests and is not close to 2."
+    },
+    {
+      "text": "Flags the 2 bare except:pass blocks (in test_ticket_export_api.py's comparison helper and test_admin_console_nav.py's comparison helper) as swallowed exceptions in verification/comparison utilities specifically",
+      "passed": true,
+      "evidence": "H2 'Bare except: pass in verification helpers hides real failures': test_ticket_export_api.py:37-41 and test_admin_console_nav.py:25-29, both identified as helpers."
+    },
+    {
+      "text": "Flags the nonzero pytest-rerunfailures retry config (reruns=2) in pytest.ini and CI as masking flakiness with no quarantine/tracking mechanism",
+      "passed": true,
+      "evidence": "H4 'Retries are on everywhere and configured twice, which hides the problems above': pytest.ini:14-15 reruns = 2 and ci.yml:31 --reruns 2. It says 'Nothing reports or fails on flaky passes' and the fix is to 'track flaky tests explicitly'."
+    },
+    {
+      "text": "Flags exactly the 2 naming outliers (AdminConsole, SettingsScreen) among page objects without over-generalizing to claim the whole pages/ package is inconsistent (8 of 10 follow *Page correctly)",
+      "passed": true,
+      "evidence": "L1: 'src/pages/AdminConsole.py and SettingsScreen.py use PascalCase module names (PEP 8) and classes without the *Page suffix used everywhere else.' This is correctly scoped to the 2 outliers. The extra nits (list_pages.py holding two classes; 'factories/factories.py contains *Builder classes') do not claim the pages package is inconsistent."
+    },
+    {
+      "text": "Flags the hardcoded plaintext-looking API key in config.py (INVOICING_PROVIDER_API_KEY = \"sk-fake1234567890\") as inconsistent with the os.getenv() pattern used by every other credential in the same class",
+      "passed": true,
+      "evidence": "H6: 'src/core/config.py:26 hardcodes INVOICING_PROVIDER_API_KEY = \"sk-fake1234567890\". This happens even though .env.example:14 declares the env var.' Fix: 'Read the value with os.getenv like every other secret'."
+    },
+    {
+      "text": "Does NOT flag the fixture-based DI/composition in conftest.py as a God Base Class or inheritance-chain problem (it is deliberately clean)",
+      "passed": true,
+      "evidence": "No God Base Class or inheritance claim. §2-A says 'DI composition is the right approach'. The conftest findings are concrete bugs (C1 AttributeError, verified real) plus M2 (custom browser/context/page fixtures shadow pytest-playwright's), which is a plugin-duplication point, not an inheritance-chain claim."
+    },
+    {
+      "text": "Does NOT flag the builder-pattern test-data factories (AccountBuilder, ContactBuilder, TicketBuilder, SubscriptionBuilder) as missing or inconsistent",
+      "passed": true,
+      "evidence": "§2-B says 'Builders (the fluent builder pattern is good)' and reports only the cross-run uniqueness defect (verified real). L1's odd nit 'factories/factories.py contains *Builder classes' is a module-naming remark and does not claim builders are missing or inconsistently used. §3 lists 'Builder API shape' as fine."
+    },
+    {
+      "text": "Does NOT claim hardcoded sleeps exist anywhere in the fixture (there are deliberately zero)",
+      "passed": true,
+      "evidence": "§3: 'No time.sleep or wait_for_timeout anywhere (grep: 0 hits)'. No sleep claim appears anywhere."
+    },
+    {
+      "text": "Does NOT flag the locator strategy as inconsistent or fragile (all page objects use get_by_role/get_by_label/get_by_test_id/get_by_text consistently)",
+      "passed": true,
+      "evidence": "§2-C: 'Locators (semantic get_by_role/label/test_id, no CSS/XPath; confirmed with 0 hits)'. The flagged issues are substring matching combined with non-unique data, and the plan_code lookup key. These are concrete data/lookup defects, not a claim that the strategy is inconsistent or fragile."
+    },
+    {
+      "text": "Does NOT include fluff/praise sentences for the clean dimensions (fixtures, factories, locators, diagnostics) in the verdict paragraph — the user explicitly asked not to relitigate what's fine",
+      "passed": false,
+      "evidence": "The 'Bottom line' verdict opens with praise: 'The architecture is reasonable: fixtures handle DI, there are builders, page objects, client wrappers and a ui/api/hybrid split.' It adds 'The *patterns* are solid'. There is also a full '§3 What is genuinely fine' section listing 11 clean items, which the user explicitly said not to spend time on."
+    },
+    {
+      "text": "Every finding is tagged with [Impact: High/Medium/Low | Effort: High/Medium/Low] using only those three legal values",
+      "passed": false,
+      "evidence": "check_format.py reports 0 Impact/Effort tags. The baseline uses a CRITICAL/HIGH/MEDIUM/LOW severity scheme with IDs (C1, H1-H6, M1-M8, L1-L6) and no Effort dimension."
+    }
+  ],
+  "summary": {
+    "passed": 11,
+    "failed": 5,
+    "total": 16,
+    "pass_rate": 0.69
+  },
+  "execution_metrics": {
+    "output_chars": 16945,
+    "transcript_chars": 4189,
+    "note": "No metrics.json was produced by the executor; tool-call counts are unavailable."
+  },
+  "timing": {
+    "executor_duration_seconds": 169.3,
+    "grader_duration_seconds": 240.0,
+    "executor_total_tokens": 76896,
+    "note": "grader_duration_seconds is an estimate",
+    "total_with_grader_seconds_estimate": 409.3
+  },
+  "claims": [
+    {
+      "claim": "authenticated_context is broken (AttributeError) for 15 of 23 tests",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Same verification as the with_skill run: auth.py:34 calls authenticate on AccountClient."
+    },
+    {
+      "claim": "M7: raise_for_status in every client method means negative tests can't be written, which 'probably explains' the no-op assertion",
+      "type": "quality",
+      "verified": false,
+      "evidence": "This is speculative. A test could use pytest.raises(HTTPError) to assert a 404. It is a design opinion, not a verified defect."
+    },
+    {
+      "claim": "list_pages.py holding two classes and factories.py containing *Builder classes are naming inconsistencies",
+      "type": "quality",
+      "verified": false,
+      "evidence": "Weak nits, not real convention violations. They pad the naming finding."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [
+      "Validity of `reruns` as an ini key",
+      "Whether Playwright creates traces/ itself"
+    ],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Flags layer-boundary leakage in test_billing_sync_api.py and test_ticket_export_api.py (raw `requests` import/calls bypassing the existing *Client wrapper classes), and explicitly notes the sibling API test files that use the wrappers correctly (contrast, not a blanket API-layer complaint)",
+        "reason": "Compound assertion (flag leakage in 2 files AND explicitly name the sibling files that use wrappers correctly). Both runs correctly scoped the finding to exactly the 2 offending files and named the unused wrappers, but neither named test_account_api.py / test_subscription_api.py as the correct contrast, so both fail on the second clause only. Consider splitting into 'scoped to exactly the 2 files' and 'names the clean siblings' so the scores show which part is missing."
+      },
+      {
+        "assertion": "Flags the raw-token / domain-representation inconsistency in the SAME two files (test_billing_sync_api.py, test_ticket_export_api.py) as a DISTINCT finding from the raw-requests layering issue, not merged into one bullet",
+        "reason": "Unclear whether two bolded sub-sections under one numbered finding with one tag count as 'distinct'. The with-skill run put raw requests and raw tokens under separate sub-headings in finding 11 but gave them one tag and one remediation. I graded that as merged. Consider saying 'separate numbered finding with its own Impact/Effort tag'."
+      },
+      {
+        "reason": "The fixture has a real defect that neither the manifest nor any assertion covers: conftest.authenticated_context passes AccountClient into AuthContext, and auth.py:34 then calls .authenticate(), which exists only on AuthClient. That raises AttributeError in setup for 15 of 23 tests. Both runs found it and ranked it the top issue. The manifest lists conftest.py as 'deliberately clean' (practice #1), so the answer key contradicts the code. Either fix the fixture (pass auth_client) or add this as a seeded defect. The same goes for the unauthenticated ticket_client/subscription_client, the builder _seq that restarts every run, and SubscriptionListPage.open_subscription(plan_code), where every subscription shares PRO-MONTHLY. Both runs found these as real issues in the 'solid' areas."
+      },
+      {
+        "reason": "Manifest line numbers are stale against the fixture: _CREATED_TICKET_IDS is at test_ticket_lifecycle.py:7, not :18; reruns is at pytest.ini:14-15, not :17-18; the CI rerun line is ci.yml:31, not :34; the bare excepts are at test_ticket_export_api.py:39 and test_admin_console_nav.py:27; and the manifest header points at the automation-framework-review-deepeval fixtures path. Line-based grading against the manifest would wrongly fail correct reviews."
+      },
+      {
+        "reason": "Almost every seeded defect is labelled in a comment or docstring in the fixture ('raw token, bypasses AuthContext', 'Executes steps but never asserts anything', 'Hardcoded plaintext-looking fake credential', 'raises an IndexError'). Detection assertions are therefore close to trivially satisfiable, and the baseline passes most of them. Strip the hint comments to make assertions 1, 2, 4, 5, 6, 7 and 10 discriminating."
+      },
+      {
+        "assertion": "Reports a count of assertion-free tests matching or close to 2 (test_delete_account_removes_from_list, test_delete_account)",
+        "reason": "This conflates 'reports a count' with 'identifies the right tests'. The baseline correctly marked both tests as 'No assertion' in its table but headlined 'at least 7 tests assert nothing meaningful', mixing no-assert and tautological tests. Consider requiring both tests to be named AND the no-assert vs. weak-assert categories to be kept separate."
+      }
+    ],
+    "overall": "The negative ('Does NOT') and format assertions discriminate well. The detection assertions are weakened by hint comments in the fixture. The answer key misses a High-impact real bug (broken auth fixture) that both runs found."
+  }
+}

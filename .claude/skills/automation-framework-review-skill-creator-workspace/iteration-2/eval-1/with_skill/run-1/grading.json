@@ -1,0 +1,186 @@
+{
+  "expectations": [
+    {
+      "text": "Flags BasePage.java as a God Base Class / SRP violation bundling multiple unrelated responsibilities (navigation, waits, assertions, popups, data I/O, misc utilities)",
+      "passed": true,
+      "evidence": "review.md '### God base class: `BasePage` (231 lines, 32 public methods, 9 concerns)' [Impact: High | Effort: Medium]: lists navigation (:32-51), explicit waits (:55-63), instant checks (:69-75), raw element access (:79-99), sleep hacks (:103-115), popup handling (:119-143), assertions (:147-172), file I/O and logging (:176-192), JS/frame/hover utilities (:196-230), and names it SRP/ISP. Line ranges match the manifest section 1."
+    },
+    {
+      "text": "Identifies a missing business-step/flow layer, citing that tests inline the same create-order / register-user sequences directly via page-object calls (at least 3 of the 5 known occurrences across CreateOrderTests.java, RegisterUserTests.java, InvoiceLookupTests.java)",
+      "passed": true,
+      "evidence": "'### Missing business-step/flow layer: every test re-composes raw page actions' says 'There's no steps/, flows/ or similar package' and cites all 5 manifest occurrences: CreateOrderTests.java:35-39, :49-54; InvoiceLookupTests.java:35-39; RegisterUserTests.java:35-40, :49-54 (plus the helpers and FullAdmin/FullInvoice sites)."
+    },
+    {
+      "text": "Identifies layer-boundary leakage: at least 2 of the 4 test files that import org.openqa.selenium.WebDriver/WebElement and call driver.findElement directly instead of going through a page object (ProductGridTests.java, InvoiceLookupTests.java, FullProductLifecycleTests.java, FullInvoiceBillingCycleTests.java)",
+      "passed": true,
+      "evidence": "'### Tests bypass page objects and drive Selenium directly': '4 of 9 test classes import By/WebElement and call driver.findElement directly: FullProductLifecycleTests (13 calls), FullInvoiceBillingCycleTests (7), ProductGridTests (5), InvoiceLookupTests (2)... 27 raw driver.findElement calls'. I re-grepped the fixture: per-file counts 13/7/5/2 = 27, exact match."
+    },
+    {
+      "text": "Identifies raw WebElement/List<WebElement> leakage from public page-object methods (e.g. BasePage.getRawElement/getRawElements, UserManagement.getFirstResultRow, OrderHandler.getAllOrderRows)",
+      "passed": true,
+      "evidence": "'### Page objects leak `WebElement`...': 'OrderHandler.getAllOrderRows() returns List<WebElement> (OrderHandler.java:35), UserManagement.getFirstResultRow() returns WebElement (UserManagement.java:28), and BasePage.getRawElement/getRawElements (BasePage.java:79-85) are public.' All 4 manifest methods are named, and the finding shows tests acting on the raw elements."
+    },
+    {
+      "text": "Identifies cross-file sibling duplication across the 4 *ModifyPage classes (UserModifyPage, OrderModifyPage, ProductModifyPage, InvoiceModifyPage) with near-identical method bodies, not just a single-file God Base Class finding",
+      "passed": true,
+      "evidence": "Separate finding '### Four near-identical `*ModifyPage` classes' [Impact: Medium | Effort: Medium]: all 4 are 50 lines with the same 6 methods, and bodies are 'byte-identical apart from the 5 locator values and one word in the error message (:22-49 in each file)'. It states explicitly: 'This is separate from the BasePage finding.'"
+    },
+    {
+      "text": "Reports a quantified hardcoded-sleep count backed by a grep (expects a count in the 30s-40s range across ~10 files, not just 'some sleeps exist')",
+      "passed": true,
+      "evidence": "'### 38 hardcoded sleeps...': 'The unconditional-waits grep (Thread.sleep|time.sleep|waitForTimeout|setTimeout|implicitlyWait) found 38 Thread.sleep calls in 10 files', with a per-file breakdown (8 in 6 page objects, 30 in 4 test classes). I re-grepped: 38 hits in 10 files, matching manifest section 7."
+    },
+    {
+      "text": "Reports a quantified empty-catch-block / swallowed-exception count backed by a grep (expects a count in the 30s-40s range across ~9 files), and separately flags BasePage.compareElementText's empty catch as a verification utility masking failure as a false match",
+      "passed": true,
+      "evidence": "'### All 49 catch blocks swallow; none rethrows': grep of 'catch (' found 49, classified as 38 empty, 3 sentinel and 8 log-and-continue. The manifest says 37. The 38th is BasePage:131 (dismissCookieBanner), whose body holds only a comment. My own structural count, treating comment-only bodies as empty, is also 38 across 9 files, so the definition is defensible. compareElementText is called out on its own: 'on any exception, the empty catch falls through to return true. So \"couldn't read either element\" reports exactly like \"texts match\".'"
+    },
+    {
+      "text": "Reports a quantified count of assertion-free test methods (expects 4, e.g. in ProductGridTests.java and InvoiceLookupTests.java)",
+      "passed": true,
+      "evidence": "'Assertion-free @Test methods: 6 of 20', naming InvoiceLookupTests.testInvoiceGridLoadsWithoutError, all 3 ProductGridTests methods, and both wip tests. That is the manifest's 4 plus the 2 wip scratch tests. I verified that DebugOrderExportTest and ScratchLoginExperimentTest have 0 Assert. calls and that the @Test total is 20. Counting the wip tests is defensible because testng.xml runs them, and the 4 expected methods are all listed. The count is backed by grep -c '@Test' / 'Assert\\.' plus a full read."
+    },
+    {
+      "text": "Flags the 3 giant multi-feature single-@Test-method test classes (FullAdminWorkflowTests, FullProductLifecycleTests, FullInvoiceBillingCycleTests), each 150+ lines covering many unrelated features",
+      "passed": true,
+      "evidence": "'### Three single-method tests each cover 11-13 unrelated features' [High|Medium] names all 3 classes: 'each have exactly 1 @Test method of about 140 lines... split into 11, 13 and 13 numbered feature blocks'. The ~140 figure is the method body length; the files are 163-165 lines, consistent with the manifest."
+    },
+    {
+      "text": "Flags the nonzero CI retry count (testng.xml retryCount=3 + RetryListener) as masking flakiness, with no quarantine/tracking mechanism",
+      "passed": true,
+      "evidence": "'### Retry policy declared but miswired; no known-issue/skip mechanism': cites testng.xml:8 retryCount=3 and RetryListener.java:13 MAX_RETRY_COUNT = 3. It says 'every failure gets silently re-run up to 3 times... flaky tests would turn green with no record of it' and 'There's no skip-with-reason or known-issue mechanism: SkipException, enabled = false, @Issue/@TmsLink... all have 0 hits.' It also notes that IRetryAnalyzer registered as a listener is miswired, which goes beyond the manifest and is plausible."
+    },
+    {
+      "text": "Flags the scratch/WIP test package (com.acme.crm.wip) as not excluded from the TestNG suite scan",
+      "passed": true,
+      "evidence": "'### Scratch/WIP tests are part of the suite that CI runs': 'testng.xml:13 includes the package com.acme.crm.wip', quoting the 'TODO: delete this... - Dave, 2024' and 'remove before merge' comments. Verified in testng.xml."
+    },
+    {
+      "text": "Flags hardcoded plaintext credentials/environment values (config.properties, DbConnector.java) with no environment-switching mechanism",
+      "passed": true,
+      "evidence": "'### Plaintext credentials committed in 7 files' is a table with config.properties:4, :9 and DbConnector.java:17, among others. '### config.properties is never read; the environment is hardcoded in 33 places': 'Targeting another environment (staging, local) means editing 9 Java files. There's no profile, system-property or env-var mechanism.' The base-URL count of 33 in src/test/java matches my grep."
+    },
+    {
+      "text": "Gives a locator-strategy distribution with real counts/percentages (not just an impression), roughly matching the ~31%/31%/38% positional/id/css split",
+      "passed": true,
+      "evidence": "Distribution uses a selector-type taxonomy over all 84 By.* calls, including the 27 in tests: cssSelector 37 (44%), id 24 (29%), xpath 12 (14%), name 11 (13%). It adds a fragility cut: '21 of 84 are positional XPath or ExtJS auto-generated IDs' (12 positional XPaths + 9 ext-comp IDs). I re-grepped and every count matches. Regrouped into the manifest's taxonomy, it comes to roughly 25% positional / 31% stable id-name / 44% css. The pages-only scope in the manifest gives 17/18/22, about 31/31/38. The run's broader scope explains the shift. It doesn't print the three-way split directly, but the real counts are present and close to the expected split, so I pass it."
+    },
+    {
+      "text": "Does NOT include a heading or paragraph praising any clean dimension (e.g. no 'the core layers are well separated' or similar fluff) — every surviving heading names a problem",
+      "passed": true,
+      "evidence": "All 32 finding headings and 11 section headings name a problem or problem area. There is no strengths section. The only positive notes are scoping clauses inside problem findings: 'Plugin and dependency version properties are named correctly... Only currency is the issue' (inside the stack-currency finding), 'Judged harmless, but only because they're labelled best-effort' (inside error handling), and 'LSP: clean (0 overrides)' inside the SOLID checklist comment. None is a praise heading or a standalone praise paragraph."
+    },
+    {
+      "text": "Every individual finding is tagged with [Impact: High/Medium/Low | Effort: High/Medium/Low] immediately after its heading, using only those three legal values",
+      "passed": true,
+      "evidence": "check_format.py: 32 Impact/Effort tags, 0 illegal values. The only untagged headings it reports are the 11 '##' category section headers (Build and CI, Secrets and environment, etc.), which group findings and aren't findings themselves. I checked manually that each of the 32 '###' finding headings has a tag on the next line, written in inline code (e.g. `[Impact: High | Effort: Low]`)."
+    },
+    {
+      "text": "Produces a FIRST-principles table (Fast/Independent/Repeatable/Self-validating/Timely) with a verdict and evidence for each letter",
+      "passed": true,
+      "evidence": "'## FIRST principles table' has all 5 letters (check_format found all 5) with Verdict and Evidence columns. Fast/Independent/Repeatable/Self-validating are Fails, each with specific counts. Timely is 'N/A statically', with the reason and related evidence (no tagging, full suite on every push)."
+    },
+    {
+      "text": "Produces a separate checklist-tab table with exact columns Section | Check | Status (+/-) | Comments, containing only rows this review's evidence actually backs (not the Tools/Strategy/AI-Usage sections)",
+      "passed": true,
+      "evidence": "checklist.md (also appended to review.md) has the exact header '| Section | Check | Status (+/-) | Comments |' (check_format: checklist_header_found true, 20 rows). Sections used are only Framework, Running and Processes. The preamble says Tools, Strategy, AI Usage and the questionnaire-only rows are excluded, and the parallel row is omitted because parallel isn't configured. Each row's comment cites file:line evidence from the review."
+    },
+    {
+      "text": "Checklist table includes a '-' row for 'Unconditional waits are not a common practice' and for 'Framework complies with SOLID' given the God Base Class finding",
+      "passed": true,
+      "evidence": "Rows present: '| Framework | Unconditional waits are not a common practice | - | 38 Thread.sleep in 10 files...' and '| Framework | Framework complies with SOLID | - | SRP/ISP: BasePage God class...'."
+    }
+  ],
+  "summary": {
+    "passed": 18,
+    "failed": 0,
+    "total": 18,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "total_tokens": 164058,
+    "subagents_used": 0,
+    "errors_encountered": 0,
+    "output_chars": 58266,
+    "transcript_chars": 7527,
+    "note": "No metrics.json present. output_chars = review.md (51807) + checklist.md (6459). Per-tool call counts not recorded in the transcript."
+  },
+  "timing": {
+    "executor_duration_seconds": 539.0,
+    "grader_duration_seconds": 300.0,
+    "note": "executor from timing.json total_duration_seconds; grader duration is an estimate (shared grading session for both runs).",
+    "total_with_grader_seconds_estimate": 839.0
+  },
+  "claims": [
+    {
+      "claim": "All 30 files were read in full; suite has 20 @Test methods",
+      "type": "factual",
+      "verified": true,
+      "evidence": "find lists 30 files (excluding the manifest, which is outside the fixture). grep -c '@Test' sums to 20."
+    },
+    {
+      "claim": "24 of 32 BasePage public methods have 0 callers",
+      "type": "factual",
+      "verified": true,
+      "evidence": "My grep loop over 32 public methods found 23 with 0 references. getCurrentUrl's 5 hits are all driver.getCurrentUrl() calls, not BasePage.getCurrentUrl(), so 24 is correct."
+    },
+    {
+      "claim": "4 of 5 utils classes have 0 references (DbConnector, EmailSenderUtil, ScreenshotUtil, DateFormatterUtil)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Consistent with the manifest (ScreenshotUtil never wired; DbConnector unused) and with the baseline run's independent grep."
+    },
+    {
+      "claim": "The project cannot compile because javax.mail is imported but not declared",
+      "type": "factual",
+      "verified": true,
+      "evidence": "EmailSenderUtil imports javax.mail.*; pom.xml declares only selenium-java, testng and mysql-connector-java. This isn't in the manifest but is a genuine defect. The run correctly marks it as needing confirmation by an mvn compile."
+    },
+    {
+      "claim": "Base URL literal appears 33 times across 9 test classes",
+      "type": "factual",
+      "verified": true,
+      "evidence": "grep 'crm-admin.acmecorp.com' src/test/java returns 33 lines."
+    },
+    {
+      "claim": "12 assertion call sites depend on the 3 instant-check predicates",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Matches the transcript grep. Manifest section 8 confirms the 3 predicates use isElementPresentNow. I didn't recount the 12 call sites individually."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [
+      "Compile failure (javax.mail) not confirmed by running mvn",
+      "Non-headless Chrome failing in CI and RetryListener behaviour at suite start are marked as hypotheses",
+      "openOrdersMenu navigation mismatch depends on live UI"
+    ],
+    "needs_review": [],
+    "workarounds": [
+      "Read files directly instead of delegating to subagents as the skill prefers, because the fixture is small"
+    ]
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Gives a locator-strategy distribution with real counts/percentages (not just an impression), roughly matching the ~31%/31%/38% positional/id/css split",
+        "reason": "The manifest's split is scoped to the 55 page-object field declarations, but a reasonable review also counts the 27 inline test locators and uses a by-selector-type taxonomy, which gives 44/29/14/13 or 25/31/44. 'Roughly matching' is underspecified. Accept either scope and grade on whether the counts are grep-correct for the scope the run states."
+      },
+      {
+        "assertion": "Reports a quantified count of assertion-free test methods (expects 4, e.g. in ProductGridTests.java and InvoiceLookupTests.java)",
+        "reason": "The fixture has 2 more assertion-free @Test methods in the wip package, which testng.xml runs, so 6 is equally correct. Update the expectation to '4 (or 6 if wip tests are counted)'."
+      },
+      {
+        "assertion": "Reports a quantified empty-catch-block / swallowed-exception count...",
+        "reason": "The manifest's 37 excludes BasePage.dismissCookieBanner, whose catch body holds only a comment. A structural count gives 38. The manifest should state its definition (comment-only bodies counted or not) so graders don't flag correct runs."
+      },
+      {
+        "reason": "Both runs found significant real defects the manifest omits: javax.mail compile failure, IRetryAnalyzer miswired as a listener, config.properties never read, step comments promising checks that are never made, vacuous assertNotNull(getText()) assertions, and production DB targeting. Consider adding them to the manifest so future runs that miss them are caught."
+      },
+      {
+        "reason": "No assertion checks for false positives or invented evidence (e.g. a wrong file:line or an inflated count). A spot-check assertion, such as '3 randomly chosen file:line citations resolve to the described code', would discriminate between careful and sloppy reviews."
+      }
+    ],
+    "overall": "Assertions mostly discriminate well: the format assertions (tags, FIRST, exact checklist columns) clearly separate skill from baseline. Several count-based expectations are stricter than the fixture's ground truth warrants (wip tests, comment-only catches, locator scope)."
+  }
+}

@@ -1,0 +1,154 @@
+{
+  "expectations": [
+    {
+      "text": "Does NOT claim a God Base Class exists (BasePage.ts is deliberately slim: goto()/waitForLoad() only)",
+      "passed": true,
+      "evidence": "Scorecard SOLID says 'Slim BasePage'. F21 (Info) only notes that panels inherit goto/waitForLoad they don't use. That is an interface-segregation nit, not a God-class claim."
+    },
+    {
+      "text": "Does NOT claim a missing business-step/flow layer exists (src/flows/orderFlows.ts, userFlows.ts, authFlows.ts are the real flow layer and every test uses them)",
+      "passed": true,
+      "evidence": "Scorecard Layering: 'Strong ... spec -> flow -> PO -> helper split is followed'. There is no missing-flow-layer claim."
+    },
+    {
+      "text": "Does NOT claim layer-boundary leakage into tests (no test file imports @playwright/test directly per the fixture's design)",
+      "passed": true,
+      "evidence": "'No spec imports Page/Locator, and no public PO method returns a Locator.' F12 is about flows importing test from fixtures, not tests importing @playwright/test."
+    },
+    {
+      "text": "Does NOT claim cross-file sibling duplication between OrderModifyPage and UserModifyPage as an uncontrolled DRY violation (they share logic via the composed EntityModifyPanel helper, which is the correct fix pattern, not the defect)",
+      "passed": true,
+      "evidence": "'EntityModifyPanel removes the save/cancel/toast duplication between the two modify panels.' There is no sibling-duplication finding."
+    },
+    {
+      "text": "Does NOT claim hardcoded sleeps exist (zero page.waitForTimeout() calls in the fixture)",
+      "passed": true,
+      "evidence": "'no waitForTimeout or setTimeout anywhere.' networkidle (F6) is treated as a discouraged load-state wait, not a sleep."
+    },
+    {
+      "text": "Does NOT claim fragile/positional locators exist (fixture uses only getByRole/getByLabel/getByTestId)",
+      "passed": false,
+      "evidence": "Fails in substance. F14 (Low) 'Substring matching in locators' claims getByLabel('Password') 'also matches a \"Forgot password?\" or \"Confirm password\" label', that getByRole('link',{name:'Orders'}) 'also matches \"Recent orders\"', and that page-wide getByRole('alert') can match unrelated alerts. F13 makes a similar point about the page-wide toast locator, and the Scorecard says 'Small risks from substring matching and page-wide toast and alert locators'. These are speculative fragility claims about the semantic locators the fixture deliberately uses. Borderline: the review does say correctly that there is no XPath, CSS or nth. But the 'rephrased claims count' standard applies."
+    },
+    {
+      "text": "Does NOT flag EntityModifyPanel for not ending in 'Page' as a naming inconsistency (it is explicitly documented as intentionally not a page object)",
+      "passed": true,
+      "evidence": "EntityModifyPanel naming is not flagged. F23 notes that OrderModifyPage/UserModifyPage are panels with a Page suffix, but says 'a deliberate, documented convention, so this is just a note'. That is about different classes and is neutral."
+    },
+    {
+      "text": "Does NOT flag submitLoginAttempt as a duplicate/inconsistent second login method (it is a distinct, correctly-named method for the negative-login test path)",
+      "passed": true,
+      "evidence": "submitLoginAttempt is never named or called a duplicate login method. F23 (Info) only notes that login.spec.ts:26 passes raw strings against the CONTRIBUTING rule, and suggests to 'document the negative-test exception'. That is a doc-vs-test mismatch that acknowledges the negative path. Borderline, but it passes. F11 flags a different duplication: the fixture's private loginAs vs the loginAsUser flow."
+    },
+    {
+      "text": "Does NOT flag the per-test UI login in adminSession/standardSession fixtures as a missing storageState optimization framed as a defect (an optional enhancement note is fine; calling it wrong is not)",
+      "passed": true,
+      "evidence": "storageState is not mentioned. 'Fixture-based DI gives each test its own login' is listed as a strength."
+    },
+    {
+      "text": "Does NOT claim test-data cleanup/teardown is missing (the createdRecords fixture registers and tears down all 4 data-creating specs)",
+      "passed": true,
+      "evidence": "'cleanup is handled by fixtures'; 'each test registers what it creates for teardown cleanup.' F8 is about teardown robustness, not missing teardown."
+    },
+    {
+      "text": "Does NOT claim retries/trace capture are misconfigured (retries: 0 deliberately pairs with trace: 'on-first-retry'... this is documented and correct)",
+      "passed": true,
+      "evidence": "'trace/screenshot/video kept on failure (correctly paired with retries: 0)'. The transcript says it left retries out on purpose because the policy is documented."
+    },
+    {
+      "text": "If thorough, correctly surfaces the missing package-lock.json / npm ci mismatch (CI runs `npm ci` but no lockfile is committed) as a genuine, non-seeded defect",
+      "passed": true,
+      "evidence": "F5 (High) 'CI npm ci with no lockfile': 'Both jobs run npm ci (e2e-tests.yml:27,65) ... The repo has no lockfile of any kind.'"
+    },
+    {
+      "text": "If thorough, correctly surfaces the tsconfig.json lib omitting ES2022 breaking the `cause` property typecheck in errors.ts as a genuine, non-seeded defect",
+      "passed": true,
+      "evidence": "F19 (Low, verify): 'FrameworkError sets this.cause = cause (errors.ts:13), but tsconfig.json sets lib to [\"ES2021\",\"DOM\"]. cause is declared in lib.es2022.error.d.ts, so tsc --noEmit (run in CI) is likely to report TS2339.' The diagnosis and fix are correct. Severity is understated as Low/verify, but the defect is surfaced."
+    },
+    {
+      "text": "If thorough, correctly surfaces the duplicated nextSuffix() helper across orderFactory.ts and userFactory.ts as a real cross-file duplication worth extracting",
+      "passed": true,
+      "evidence": "F10 (Medium) 'Duplicated nextSuffix()': 'orderFactory.ts:3-16 and userFactory.ts:3-16 are character-for-character identical ... Move it to src/factories/uniqueSuffix.ts.'"
+    },
+    {
+      "text": "Produces a FIRST-principles table with mostly passing/clean verdicts, not manufactured failures",
+      "passed": false,
+      "evidence": "There is no FIRST-principles table (check_format: first_table_letters_found = []). The review uses a custom Scorecard instead."
+    },
+    {
+      "text": "The verdict-up-front paragraph does not read as a tour of what's good (no 'the architecture is clean, locators are stable, waits are solid' style praise) — if genuinely little is wrong, it says so briefly rather than touring strengths",
+      "passed": false,
+      "evidence": "The verdict tours strengths, which is exactly the failure mode: 'You're right that the architecture is in good shape. The layering (spec -> flow -> page object -> composed helper) is clean, the locator strategy is good, there are no hard sleeps or empty catch blocks, test data is built through factories, and cleanup is handled by fixtures. That is better than most suites I see.' It also adds a full '## 4. What's done well' section."
+    },
+    {
+      "text": "Total finding count is low (roughly 0-5 real findings), consistent with this being a deliberately clean fixture — a review padding this out with 10+ findings to seem thorough is a failure mode to flag",
+      "passed": false,
+      "evidence": "23 findings by the review's own count: 'Totals (23 findings): 5 High, 5 Medium, 1 Low-Medium, 9 Low, 3 Info'. That includes 5 High and 8 'must fix before sign-off' items on a deliberately clean fixture. Many are speculative: F13 toast, F14 substring matching, F16 double wrapping, F17 coverage wishlist, and the F21-F23 info items. This is the padding failure mode."
+    }
+  ],
+  "summary": {
+    "passed": 13,
+    "failed": 4,
+    "total": 17,
+    "pass_rate": 0.76
+  },
+  "execution_metrics": {
+    "output_chars": 23796,
+    "transcript_chars": 4127,
+    "total_tokens": 88226,
+    "errors_encountered": 0
+  },
+  "timing": {
+    "executor_duration_seconds": 213.1,
+    "grader_duration_seconds": 0.0,
+    "total_with_grader_seconds_estimate": 213.1
+  },
+  "claims": [
+    {
+      "claim": ".env is never loaded (no dotenv)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "grep -rn dotenv returns nothing. The observation is genuine but not in the manifest. Rating it High overstates it, because CI injects env vars."
+    },
+    {
+      "claim": "getByLabel('Password') would also match a 'Forgot password?' label",
+      "type": "quality",
+      "verified": false,
+      "evidence": "Speculative. The fixture has no such label, and 'Forgot password?' is typically a link, not a label."
+    },
+    {
+      "claim": "Totals 23 findings: 5 High, 5 Medium, 1 Low-Medium, 9 Low, 3 Info",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Matches the findings summary table (F1-F23)."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [
+      "F19 was not confirmed by running tsc",
+      "F2, F8 and F9 depend on app behavior"
+    ],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Does NOT claim retries/trace capture are misconfigured (retries: 0 deliberately pairs with trace: 'on-first-retry'... this is documented and correct)",
+        "reason": "The assertion text is stale. The fixture now uses trace: 'retain-on-failure' (playwright.config.ts:33), and the manifest says pairing retries: 0 with 'on-first-retry' was the old bug. A grader who reads the text literally could penalise a review that correctly cites retain-on-failure. Update the parenthetical."
+      },
+      {
+        "reason": "No assertion rewards the manifest's first genuine unseeded bug: tests that assert less than their titles claim (notes, multi-item, custom status, admin/read-only role). Both runs made it their headline finding. Add an 'If thorough, surfaces the over-claiming tests' assertion. The UI-instead-of-API seeding bug has the same gap, and only with_skill caught it."
+      },
+      {
+        "assertion": "Does NOT flag submitLoginAttempt as a duplicate/inconsistent second login method (it is a distinct, correctly-named method for the negative-login test path)",
+        "reason": "CONTRIBUTING.md:60-62 says 'Never log in with a raw credential string' and states no negative-path exception. Both runs therefore flagged login.spec.ts:26 as contradicting the docs, which is a defensible doc-gap observation. Either add the exception to CONTRIBUTING, so the guard tests pure false-positive behaviour, or reword the assertion to separate 'the doc should mention the exception' (OK) from 'a second login method is a duplicate' (not OK)."
+      },
+      {
+        "assertion": "Total finding count is low (roughly 0-5 real findings), consistent with this being a deliberately clean fixture — a review padding this out with 10+ findings to seem thorough is a failure mode to flag",
+        "reason": "The manifest itself lists 5 genuine unseeded bugs plus an acceptable WebKit nit. A fully thorough review therefore sits at 5-6 findings before any other legitimate observation, and 'roughly 0-5' leaves no room for genuine extras such as the networkidle wait, which is arguably real. Consider '<= 7 findings, with no more than 2 outside the manifest's genuine list'."
+      }
+    ],
+    "overall": "The false-positive guards discriminate well: the baseline's praise-tour verdict and 23 findings fail clearly. Three gaps remain: the trace assertion is stale, the over-claiming-tests bug is not rewarded, and the finding-count threshold sits right at the manifest's own genuine-bug count."
+  }
+}

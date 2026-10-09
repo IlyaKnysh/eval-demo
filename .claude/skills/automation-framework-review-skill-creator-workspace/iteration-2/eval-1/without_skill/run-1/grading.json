@@ -1,0 +1,186 @@
+{
+  "expectations": [
+    {
+      "text": "Flags BasePage.java as a God Base Class / SRP violation bundling multiple unrelated responsibilities (navigation, waits, assertions, popups, data I/O, misc utilities)",
+      "passed": true,
+      "evidence": "'#### M1. `BasePage` is a god class (violates SRP)': 'mixes navigation, waits, \"hack\" sleeps, popup handling, assertions, file logging, CSV result writing, JS scrolling and highlighting, frames, dropdowns and hover', and quotes the self-describing Javadoc (:17-20)."
+    },
+    {
+      "text": "Identifies a missing business-step/flow layer, citing that tests inline the same create-order / register-user sequences directly via page-object calls (at least 3 of the 5 known occurrences across CreateOrderTests.java, RegisterUserTests.java, InvoiceLookupTests.java)",
+      "passed": false,
+      "evidence": "The only related text is one bullet under M4 (copy-paste duplication): 'The order-creation steps are duplicated across CreateOrderTests, FullAdminWorkflowTests, FullInvoiceBillingCycleTests and InvoiceLookupTests', with the recommendation 'Add flow methods such as OrderCreatePage.createOrder(OrderData)'. It frames this as DRY, not as a missing steps/flow layer, and in fact proposes putting the flow inside a page object. It cites no methods or line numbers, and never mentions the repeated register-user sequence in RegisterUserTests. It doesn't cite 3 of the 5 specific occurrences."
+    },
+    {
+      "text": "Identifies layer-boundary leakage: at least 2 of the 4 test files that import org.openqa.selenium.WebDriver/WebElement and call driver.findElement directly instead of going through a page object (ProductGridTests.java, InvoiceLookupTests.java, FullProductLifecycleTests.java, FullInvoiceBillingCycleTests.java)",
+      "passed": true,
+      "evidence": "'#### M3. Raw Selenium in tests...': 'Tests call driver.findElement(...) directly 27 times, mostly in FullProductLifecycleTests, FullInvoiceBillingCycleTests, InvoiceLookupTests and ProductGridTests', with no page objects for product grid or invoice list. All 4 files named, and the total of 27 matches my grep."
+    },
+    {
+      "text": "Identifies raw WebElement/List<WebElement> leakage from public page-object methods (e.g. BasePage.getRawElement/getRawElements, UserManagement.getFirstResultRow, OrderHandler.getAllOrderRows)",
+      "passed": true,
+      "evidence": "M3: 'BasePage.getRawElement(s) (:79-85), OrderHandler.getAllOrderRows() (:35-37) and UserManagement.getFirstResultRow() (:28-30) return WebElements to tests.' Checklist row 10 repeats this."
+    },
+    {
+      "text": "Identifies cross-file sibling duplication across the 4 *ModifyPage classes (UserModifyPage, OrderModifyPage, ProductModifyPage, InvoiceModifyPage) with near-identical method bodies, not just a single-file God Base Class finding",
+      "passed": true,
+      "evidence": "M4: 'InvoiceModifyPage, OrderModifyPage, ProductModifyPage and UserModifyPage are identical (50 lines each) apart from locator values and the error message', and recommends an EntityModifyForm component. This is distinct from M1 (BasePage)."
+    },
+    {
+      "text": "Reports a quantified hardcoded-sleep count backed by a grep (expects a count in the 30s-40s range across ~10 files, not just 'some sleeps exist')",
+      "passed": true,
+      "evidence": "H3: 'There are 38 Thread.sleep calls: 8 in page objects (BasePage.java:105,112, DashboardPage.java:19, LoginPage.java:22,35, OrderCreatePage.java:63, OrderHandler.java:29, UserRegisterPage.java:63) and 30 in tests (FullAdmin 9, FullInvoice 10, FullProduct 10, ProductGrid 1)', which covers 10 files. Section 5 says 'grep -rn \"Thread.sleep\" src | wc -l returned 38'. Verified."
+    },
+    {
+      "text": "Reports a quantified empty-catch-block / swallowed-exception count backed by a grep (expects a count in the 30s-40s range across ~9 files), and separately flags BasePage.compareElementText's empty catch as a verification utility masking failure as a false match",
+      "passed": true,
+      "evidence": "The executive summary and H3 give '36 empty catch blocks that swallow InterruptedException'. The transcript's grep step records 'empty InterruptedException catches: 36', which is correct: 38 sleeps minus the 2 log-and-continue catches. That definition is narrower than the manifest's 37: it omits the empty catch (Exception) at BasePage:131/169, which M5 lists separately. It's still in the expected range and grep-backed. H5 flags compareElementText separately: 'returns true when an exception is thrown, so a missing element counts as a match... would produce false passes if anyone adopted it.' It gives no per-file spread for catches, but the sleep breakdown implies it."
+    },
+    {
+      "text": "Reports a quantified count of assertion-free test methods (expects 4, e.g. in ProductGridTests.java and InvoiceLookupTests.java)",
+      "passed": false,
+      "evidence": "H5 lists the cases individually: 'ProductGridTests.java: all 3 tests ... contain no assertion', InvoiceLookupTests.testInvoiceGridLoadsWithoutError discards isDisplayed(), and 'The scratch and debug tests (wip/*) contain no assertions.' It never states a total. The only aggregate, 'Roughly a third of the @Test methods cannot fail on a functional regression', mixes vacuous and tautological assertions in with assertion-free methods and is approximate. All 4 methods are identified, so this is borderline, but the assertion asks for a quantified count, and the burden of proof isn't met."
+    },
+    {
+      "text": "Flags the 3 giant multi-feature single-@Test-method test classes (FullAdminWorkflowTests, FullProductLifecycleTests, FullInvoiceBillingCycleTests), each 150+ lines covering many unrelated features",
+      "passed": true,
+      "evidence": "'#### H8. Monolithic \"mega\" tests': 'FullAdminWorkflowTests, FullInvoiceBillingCycleTests and FullProductLifecycleTests each contain one @Test method of about 140 lines that chains 11-13 numbered features across unrelated areas'."
+    },
+    {
+      "text": "Flags the nonzero CI retry count (testng.xml retryCount=3 + RetryListener) as masking flakiness, with no quarantine/tracking mechanism",
+      "passed": true,
+      "evidence": "C2: cites testng.xml:4-8 and RetryListener.java:13 MAX_RETRY_COUNT = 3. 'If it were wired correctly, a blanket 3x retry would hide the timing problems', and it recommends to 'report retried tests as flaky rather than passed', which implies there is currently no tracking. Checklist row 26 'Retry policy is deliberate, limited and reported' is marked No. It's weaker than the skill run on the quarantine/known-issue part (no explicit 'no skip/quarantine mechanism' statement), but the masking concern and the missing flaky reporting are both flagged."
+    },
+    {
+      "text": "Flags the scratch/WIP test package (com.acme.crm.wip) as not excluded from the TestNG suite scan",
+      "passed": true,
+      "evidence": "'#### H11. WIP/debug tests are part of the CI suite': 'testng.xml:13 includes the com.acme.crm.wip package', quoting the TODO and 'remove before merge' comments."
+    },
+    {
+      "text": "Flags hardcoded plaintext credentials/environment values (config.properties, DbConnector.java) with no environment-switching mechanism",
+      "passed": true,
+      "evidence": "C3 cites config.properties:3-9 and DbConnector.java:15-17 plus the Java login literals. H2: 'Nothing in src loads config.properties... You cannot change the environment without editing about 35 lines of Java'. C4 recommends 'Introduce environment selection (-Denv=qa) with per-environment config'."
+    },
+    {
+      "text": "Gives a locator-strategy distribution with real counts/percentages (not just an impression), roughly matching the ~31%/31%/38% positional/id/css split",
+      "passed": false,
+      "evidence": "H4 reports only the fragile subsets ('12 positional XPaths', '9 ExtJS auto-generated ids'), and checklist row 16 says only 'Some id and name locators'. There's no total locator count, no count of id/name or CSS locators, and no percentages, so no distribution is given."
+    },
+    {
+      "text": "Does NOT include a heading or paragraph praising any clean dimension (e.g. no 'the core layers are well separated' or similar fluff) — every surviving heading names a problem",
+      "passed": false,
+      "evidence": "review.md has a dedicated section '## 2. What is done reasonably well' with praise bullets: 'A page-object layer exists... Locators are private final By fields', 'Some locators are semantic and stable', 'Driver cleanup is attempted', 'The project uses a standard Maven layout...'."
+    },
+    {
+      "text": "Every individual finding is tagged with [Impact: High/Medium/Low | Effort: High/Medium/Low] immediately after its heading, using only those three legal values",
+      "passed": false,
+      "evidence": "check_format.py reports 0 Impact/Effort tags. Findings use a single Critical/High/Medium/Low severity grouping (C1-C5, H1-H11, M1-M10, L1-L9) with no Effort dimension."
+    },
+    {
+      "text": "Produces a FIRST-principles table (Fast/Independent/Repeatable/Self-validating/Timely) with a verdict and evidence for each letter",
+      "passed": false,
+      "evidence": "There's no FIRST table. check_format found only the word 'Independent', which comes from a checklist row ('Tests are independent and order-agnostic'), not from a FIRST table."
+    },
+    {
+      "text": "Produces a separate checklist-tab table with exact columns Section | Check | Status (+/-) | Comments, containing only rows this review's evidence actually backs (not the Tools/Strategy/AI-Usage sections)",
+      "passed": false,
+      "evidence": "checklist.md uses the columns '# | Area | Checklist item | Status | Evidence | Recommendation' with Yes/Partial/No statuses (check_format: checklist_header_found false). The run says it invented a generic layout because the team's template wasn't provided. This failure is expected for a baseline."
+    },
+    {
+      "text": "Checklist table includes a '-' row for 'Unconditional waits are not a common practice' and for 'Framework complies with SOLID' given the God Base Class finding",
+      "passed": false,
+      "evidence": "Neither row exists. The closest equivalents are row 14 'No hard-coded sleeps; explicit waits used | No' and row 11 'Single Responsibility (no god classes) | No'. They use a different check wording and a different status vocabulary (No rather than '-'), and there's no SOLID row as such."
+    }
+  ],
+  "summary": {
+    "passed": 10,
+    "failed": 8,
+    "total": 18,
+    "pass_rate": 0.56
+  },
+  "execution_metrics": {
+    "total_tokens": 107180,
+    "subagents_used": 0,
+    "errors_encountered": 0,
+    "output_chars": 50601,
+    "transcript_chars": 5235,
+    "note": "No metrics.json present. output_chars = review.md (43277) + checklist.md (7324). Per-tool call counts not recorded in the transcript."
+  },
+  "timing": {
+    "executor_duration_seconds": 296.1,
+    "grader_duration_seconds": 300.0,
+    "note": "executor from timing.json total_duration_seconds; grader duration is an estimate (shared grading session for both runs).",
+    "total_with_grader_seconds_estimate": 596.1
+  },
+  "claims": [
+    {
+      "claim": "Scope: 11 page objects, 6 utilities, 9 test classes (31 files)",
+      "type": "factual",
+      "verified": false,
+      "evidence": "The fixture has 5 utilities (DateFormatterUtil, DbConnector, EmailSenderUtil, RetryListener, ScreenshotUtil) and 30 files. A minor inventory error."
+    },
+    {
+      "claim": "14 BasePage public methods have 0 call sites",
+      "type": "factual",
+      "verified": false,
+      "evidence": "Undercount. My grep finds 24 of 32 public BasePage methods uncalled. It also misses navigateTo, goBack, getPageTitle, getRawElements, scrollToElement, switchToFrame, switchToDefaultContent, hoverOver, takeScreenshotPathPlaceholder and getCurrentUrl. All 14 that it does list are genuinely unused."
+    },
+    {
+      "claim": "URLs hard-coded 35 times in src",
+      "type": "factual",
+      "verified": true,
+      "evidence": "grep 'crm-admin.acmecorp.com' src returns 35 (33 in Java tests plus config.properties)."
+    },
+    {
+      "claim": "Tests call driver.findElement directly 27 times",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Per-file grep: 13+7+5+2 = 27."
+    },
+    {
+      "claim": "openOrdersMenu() navigates to Orders, not user registration",
+      "type": "quality",
+      "verified": false,
+      "evidence": "Stated as fact. The method clicks positional li[3] (DashboardPage.java:8), so what it actually opens can't be determined statically. The skill run correctly hedged this as UI-dependent."
+    },
+    {
+      "claim": "UserManagement.getFirstResultRow selects tr[2], which is the second row, not the first",
+      "type": "quality",
+      "verified": false,
+      "evidence": "Questionable: tr[2] may well be the first data row after a header row. Not provable from code."
+    },
+    {
+      "claim": "Main source does not compile (javax.mail undeclared)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "pom.xml declares no JavaMail dependency; EmailSenderUtil imports javax.mail. Real defect not in the manifest."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [
+      "Compile failure and listener-startup failure inferred, not observed",
+      "Checklist column layout invented because the team template was unknown"
+    ],
+    "needs_review": [
+      "Checklist columns need renaming to match the team spreadsheet"
+    ],
+    "workarounds": [
+      "Used a generic Area/Checklist item/Status/Evidence/Recommendation layout"
+    ]
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Identifies a missing business-step/flow layer...",
+        "reason": "The baseline's DRY bullet about duplicated order-creation steps was close. This assertion separates 'names the missing layer and cites occurrences' from 'mentions duplication' well. Keep it."
+      },
+      {
+        "assertion": "Reports a quantified count of assertion-free test methods (expects 4...)",
+        "reason": "The baseline identified all 4 methods but gave no total. Clarify whether naming all the instances counts as 'quantified', so graders don't have to make a borderline call."
+      },
+      {
+        "reason": "The checklist and format assertions (exact columns, Impact/Effort tags, FIRST table, specific checklist rows) account for 5 of the baseline's 8 failures. They test template conformance, which is fair for this skill, but the substantive-content gap between the runs is smaller than the 18 vs 10 score suggests. Consider weighting or reporting the content and format assertions separately in the benchmark."
+      }
+    ],
+    "overall": "The baseline found almost all the substantive manifest defects, plus several real extras: compile failure, miswired retry, production targeting, and comment-vs-assertion gaps. It lost points mainly on format conformance, on not quantifying assertion-free tests and locator distribution, and on a praise section."
+  }
+}

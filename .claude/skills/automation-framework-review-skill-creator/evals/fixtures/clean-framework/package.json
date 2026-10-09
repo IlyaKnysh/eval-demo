@@ -1,0 +1,23 @@
+{
+  "name": "storefront-admin-e2e",
+  "version": "1.3.0",
+  "private": true,
+  "description": "End-to-end UI automation for the Storefront Admin panel (orders, users, catalog).",
+  "scripts": {
+    "test": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:full": "playwright test",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report",
+    "codegen": "playwright codegen"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.2",
+    "@types/node": "^20.14.10",
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

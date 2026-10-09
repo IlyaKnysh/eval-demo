@@ -1,0 +1,184 @@
+{
+  "expectations": [
+    {
+      "text": "Flags a missing business-step/flow layer across at least 3 of the 4 known test functions (test_update_account_name, test_update_account_status, test_update_ticket_priority, test_update_subscription_seats) that each inline the same create->open->modify->save->assert sequence",
+      "passed": true,
+      "evidence": "Finding 15 'Missing business-step layer: 5 hybrid tests re-compose the same 4-step skeleton inline' cites test_account_lifecycle.py:13,33 (update_account_name, update_account_status), test_subscription_lifecycle.py:8,29 (update_subscription_seats plus cancel) and test_ticket_lifecycle.py:10 (update_ticket_priority). All 4 known tests are covered, and it notes 'No steps/ or flows/ module exists'."
+    },
+    {
+      "text": "Flags layer-boundary leakage in test_billing_sync_api.py and test_ticket_export_api.py (raw `requests` import/calls bypassing the existing *Client wrapper classes), and explicitly notes the sibling API test files that use the wrappers correctly (contrast, not a blanket API-layer complaint)",
+      "passed": false,
+      "evidence": "Finding 11 correctly flags raw `requests` in exactly 2 files (test_billing_sync_api.py:21,:35; test_ticket_export_api.py:22). It notes SubscriptionClient.trigger_billing_sync has 0 callers and that TicketClient.export_ticket is used by the neighbouring test in the same file. It never names the sibling files test_account_api.py / test_subscription_api.py as using the wrappers correctly. The only contrast is within the same file, so the 'explicitly notes the sibling API test files' clause is not met."
+    },
+    {
+      "text": "Flags the raw-token / domain-representation inconsistency in the SAME two files (test_billing_sync_api.py, test_ticket_export_api.py) as a DISTINCT finding from the raw-requests layering issue, not merged into one bullet",
+      "passed": false,
+      "evidence": "The raw-token issue ('Credentials expressed three ways': Config.API_TOKEN at test_billing_sync_api.py:24,:38 and os.getenv at test_ticket_export_api.py:21) sits under the SAME numbered finding 11 as the raw-requests layering issue. Finding 11 has a single heading 'API tests bypass the client layer and the typed auth concept', a single [Impact: Medium | Effort: Low] tag and a single combined remediation (rollup item 10). The two issues have separate bold sub-sections, but they are one finding, not distinct ones. Only the checklist table splits them (the 'consistent' row vs the 'layered' row)."
+    },
+    {
+      "text": "Flags cross-file sibling duplication across the 4 *_modify_page.py classes (account, contact, ticket, subscription) with near-identical bodies differing only in label text",
+      "passed": true,
+      "evidence": "Finding 16 'Four *ModifyPage classes are copy-paste clones' names account/contact/ticket/subscription_modify_page.py: 'only 3 changed lines per file: the heading text, the field label and the success toast text', and proposes one parameterized EntityModifyPage."
+    },
+    {
+      "text": "Flags the shared module-level mutable state in test_ticket_lifecycle.py (_CREATED_TICKET_IDS list) as a test-independence / order-dependency violation, ideally noting the IndexError that results from running the dependent test in isolation",
+      "passed": true,
+      "evidence": "Finding 8: 'tests/hybrid/test_ticket_lifecycle.py:7 declares _CREATED_TICKET_IDS = []' ... 'Running the second test on its own (-k, --lf, IDE single-test run, or any future pytest-xdist split) gives IndexError instead of an assertion failure.' Verified at fixture lines 7, 33 and 42."
+    },
+    {
+      "text": "Reports a count of assertion-free tests matching or close to 2 (test_delete_account_removes_from_list, test_delete_account)",
+      "passed": true,
+      "evidence": "Finding 6: 'Mandatory grep result: 2 of 23 test functions contain no assert at all', naming test_delete_account (test_account_api.py:20) and test_delete_account_removes_from_list (test_account_lifecycle.py:53). The 3 tautological-assert tests are kept as a separate category."
+    },
+    {
+      "text": "Flags the 2 bare except:pass blocks (in test_ticket_export_api.py's comparison helper and test_admin_console_nav.py's comparison helper) as swallowed exceptions in verification/comparison utilities specifically",
+      "passed": true,
+      "evidence": "Finding 20 'Bare except: swallows in verification helpers' has a table with test_ticket_export_api.py:37-41 _content_matches_expected_header and test_admin_console_nav.py:25-29 _values_are_equivalent, '2 catch sites in the repo, and both swallow.' This exactly matches the fixture."
+    },
+    {
+      "text": "Flags the nonzero pytest-rerunfailures retry config (reruns=2) in pytest.ini and CI as masking flakiness with no quarantine/tracking mechanism",
+      "passed": true,
+      "evidence": "Finding 12 'Retries mask failures: reruns = 2 in two places, with no flaky tracking': pytest.ini:14-15 and ci.yml:31. It lists '0 @pytest.mark.flaky or xfail markers', 'no quarantine list', and 'no --only-rerun filter'."
+    },
+    {
+      "text": "Flags exactly the 2 naming outliers (AdminConsole, SettingsScreen) among page objects without over-generalizing to claim the whole pages/ package is inconsistent (8 of 10 follow *Page correctly)",
+      "passed": true,
+      "evidence": "Finding 24: 'Page-object classes: 8 of 10 end in Page. The outliers are AdminConsole and SettingsScreen.' It also notes the PascalCase module filenames (allowed by the manifest) and does not generalize to the whole package."
+    },
+    {
+      "text": "Flags the hardcoded plaintext-looking API key in config.py (INVOICING_PROVIDER_API_KEY = \"sk-fake1234567890\") as inconsistent with the os.getenv() pattern used by every other credential in the same class",
+      "passed": true,
+      "evidence": "Finding 13: config.py:26 INVOICING_PROVIDER_API_KEY = \"sk-fake1234567890\"; 'Every other credential in the class comes from os.getenv (:18-21)'; .env.example:14 documents it as an env var."
+    },
+    {
+      "text": "Does NOT flag the fixture-based DI/composition in conftest.py as a God Base Class or inheritance-chain problem (it is deliberately clean)",
+      "passed": true,
+      "evidence": "No God Base Class or inheritance claim. The checklist SOLID row says '+ No god base class'. The conftest findings (1: AttributeError from AuthContext calling authenticate on AccountClient; 2: unauthenticated ticket/subscription clients; 9: trace-save precedence; 10: autouse browser on API tests) are concrete wiring defects, not complaints about the DI pattern. I verified finding 1 against the code: conftest.py:78 passes account_client, auth.py:34 calls .authenticate, and authenticate is defined only on AuthClient (base_client.py:24). It is a real bug."
+    },
+    {
+      "text": "Does NOT flag the builder-pattern test-data factories (AccountBuilder, ContactBuilder, TicketBuilder, SubscriptionBuilder) as missing or inconsistent",
+      "passed": true,
+      "evidence": "No claim that builders are missing or inconsistently used. Finding 3 reports a concrete cross-run uniqueness defect (factories.py:12 _seq = itertools.count(1) restarts per process; verified) and notes that SubscriptionBuilder already uses uuid. Finding 18 lists ContactBuilder as unused (dead code). Neither is a pattern complaint."
+    },
+    {
+      "text": "Does NOT claim hardcoded sleeps exist anywhere in the fixture (there are deliberately zero)",
+      "passed": true,
+      "evidence": "Finding 19: 'Mandatory grep result: 0 unconditional waits (time.sleep, wait_for_timeout, setTimeout and implicitlyWait all return 0)'. The checklist row is '+'."
+    },
+    {
+      "text": "Does NOT flag the locator strategy as inconsistent or fragile (all page objects use get_by_role/get_by_label/get_by_test_id/get_by_text consistently)",
+      "passed": true,
+      "evidence": "The scope line says it did not question 'role/test-id locators'. Finding 5 (SubscriptionListPage.open_subscription clicks a link by plan_code, which every subscription shares as PRO-MONTHLY; verified at list_pages.py:23 and factories.py:88) and finding 3's exact=True note are concrete lookup-key/data defects, not a claim that the semantic locator strategy is inconsistent or fragile. Finding 17 is about layering (raw page.get_by_* in tests), not locator choice."
+    },
+    {
+      "text": "Does NOT include fluff/praise sentences for the clean dimensions (fixtures, factories, locators, diagnostics) in the verdict paragraph — the user explicitly asked not to relitigate what's fine",
+      "passed": true,
+      "evidence": "The 'Verdict up front' block has 3 bullets, all problems (broken auth fixture, non-repeatable data, smaller issues), with no praise. The scope note's 'so I did not question the design choices there' explains scope and is not praise. Clean verdicts appear only in the FIRST and checklist tables."
+    },
+    {
+      "text": "Every finding is tagged with [Impact: High/Medium/Low | Effort: High/Medium/Low] using only those three legal values",
+      "passed": true,
+      "evidence": "check_format.py reports 24 impact_effort_tags with 0 illegal values. grep confirms all 24 '## N.' finding headings carry a legal tag (3 High/Low, 12 Medium/Low, 2 Medium/Medium, 7 Low/Low) and 0 are untagged."
+    }
+  ],
+  "summary": {
+    "passed": 14,
+    "failed": 2,
+    "total": 16,
+    "pass_rate": 0.88
+  },
+  "execution_metrics": {
+    "output_chars": 38463,
+    "transcript_chars": 7988,
+    "note": "No metrics.json was produced by the executor; tool-call counts are unavailable."
+  },
+  "timing": {
+    "executor_duration_seconds": 412.2,
+    "grader_duration_seconds": 240.0,
+    "executor_total_tokens": 125271,
+    "note": "grader_duration_seconds is an estimate",
+    "total_with_grader_seconds_estimate": 652.2
+  },
+  "claims": [
+    {
+      "claim": "authenticated_context raises AttributeError because AuthContext calls authenticate() on an AccountClient",
+      "type": "factual",
+      "verified": true,
+      "evidence": "conftest.py:78 AuthContext(page, account_client); auth.py:34 self._api_client.authenticate(...); authenticate is defined only on AuthClient (base_client.py:24); AccountClient (clients.py:11) inherits BaseApiClient, which lacks it."
+    },
+    {
+      "claim": "15 of 23 tests request authenticated_context",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Consistent with the independent baseline count (per-file 3/3/2/1/2/4). The visible fixture files match: test_account_api 3, account_lifecycle 3, subscription_lifecycle 2, ticket_lifecycle 1, admin_console_nav 2."
+    },
+    {
+      "claim": "ticket_client and subscription_client never receive an auth token",
+      "type": "factual",
+      "verified": true,
+      "evidence": "conftest.py:55-62 constructs them without set_auth_token. set_auth_token is called only at auth.py:35."
+    },
+    {
+      "claim": "SubscriptionListPage.open_subscription looks up by plan_code, which every subscription shares",
+      "type": "factual",
+      "verified": true,
+      "evidence": "list_pages.py:23 get_by_role('link', name=plan_code); factories.py:88 plan_code 'PRO-MONTHLY' default."
+    },
+    {
+      "claim": "conftest.py:90 parses as (A or B) if hasattr(...) else False, so setup-phase failures never save a trace",
+      "type": "factual",
+      "verified": true,
+      "evidence": "The conditional expression has the lowest precedence. rep_call is set only by makereport for the call phase."
+    },
+    {
+      "claim": "Neither bare-except helper can turn a failure into a pass, contrary to the fixture docstring",
+      "type": "factual",
+      "verified": true,
+      "evidence": "_values_are_equivalent: the fallback is reached only when .strip() raises (e.g. None), and None == 'Settings saved' is False. export_ticket returns bytes, so slicing cannot raise."
+    },
+    {
+      "claim": "The executor did not open the manifest",
+      "type": "process",
+      "verified": true,
+      "evidence": "The transcript says .manifest.md names were seen in an ls listing but not opened. The review's line numbers match the actual fixture rather than the stale manifest lines, which is consistent with that."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [
+      "Unsure whether pytest-rerunfailures 14.0 honours `reruns` as a pytest.ini key; made no claim",
+      "Assumed the framework dir is the repo root for the .gitignore check"
+    ],
+    "needs_review": [
+      "Reported real defects inside the user's 'solid' areas (auth wiring, builder uniqueness, plan_code lookup), framed as concrete bugs rather than pattern critiques"
+    ],
+    "workarounds": [
+      "First batched cat output was truncated; files were re-read individually"
+    ]
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Flags layer-boundary leakage in test_billing_sync_api.py and test_ticket_export_api.py (raw `requests` import/calls bypassing the existing *Client wrapper classes), and explicitly notes the sibling API test files that use the wrappers correctly (contrast, not a blanket API-layer complaint)",
+        "reason": "Compound assertion (flag leakage in 2 files AND explicitly name the sibling files that use wrappers correctly). Both runs correctly scoped the finding to exactly the 2 offending files and named the unused wrappers, but neither named test_account_api.py / test_subscription_api.py as the correct contrast, so both fail on the second clause only. Consider splitting into 'scoped to exactly the 2 files' and 'names the clean siblings' so the scores show which part is missing."
+      },
+      {
+        "assertion": "Flags the raw-token / domain-representation inconsistency in the SAME two files (test_billing_sync_api.py, test_ticket_export_api.py) as a DISTINCT finding from the raw-requests layering issue, not merged into one bullet",
+        "reason": "Unclear whether two bolded sub-sections under one numbered finding with one tag count as 'distinct'. The with-skill run put raw requests and raw tokens under separate sub-headings in finding 11 but gave them one tag and one remediation. I graded that as merged. Consider saying 'separate numbered finding with its own Impact/Effort tag'."
+      },
+      {
+        "reason": "The fixture has a real defect that neither the manifest nor any assertion covers: conftest.authenticated_context passes AccountClient into AuthContext, and auth.py:34 then calls .authenticate(), which exists only on AuthClient. That raises AttributeError in setup for 15 of 23 tests. Both runs found it and ranked it the top issue. The manifest lists conftest.py as 'deliberately clean' (practice #1), so the answer key contradicts the code. Either fix the fixture (pass auth_client) or add this as a seeded defect. The same goes for the unauthenticated ticket_client/subscription_client, the builder _seq that restarts every run, and SubscriptionListPage.open_subscription(plan_code), where every subscription shares PRO-MONTHLY. Both runs found these as real issues in the 'solid' areas."
+      },
+      {
+        "reason": "Manifest line numbers are stale against the fixture: _CREATED_TICKET_IDS is at test_ticket_lifecycle.py:7, not :18; reruns is at pytest.ini:14-15, not :17-18; the CI rerun line is ci.yml:31, not :34; the bare excepts are at test_ticket_export_api.py:39 and test_admin_console_nav.py:27; and the manifest header points at the automation-framework-review-deepeval fixtures path. Line-based grading against the manifest would wrongly fail correct reviews."
+      },
+      {
+        "reason": "Almost every seeded defect is labelled in a comment or docstring in the fixture ('raw token, bypasses AuthContext', 'Executes steps but never asserts anything', 'Hardcoded plaintext-looking fake credential', 'raises an IndexError'). Detection assertions are therefore close to trivially satisfiable, and the baseline passes most of them. Strip the hint comments to make assertions 1, 2, 4, 5, 6, 7 and 10 discriminating."
+      },
+      {
+        "assertion": "Reports a count of assertion-free tests matching or close to 2 (test_delete_account_removes_from_list, test_delete_account)",
+        "reason": "This conflates 'reports a count' with 'identifies the right tests'. The baseline correctly marked both tests as 'No assertion' in its table but headlined 'at least 7 tests assert nothing meaningful', mixing no-assert and tautological tests. Consider requiring both tests to be named AND the no-assert vs. weak-assert categories to be kept separate."
+      }
+    ],
+    "overall": "The negative ('Does NOT') and format assertions discriminate well. The detection assertions are weakened by hint comments in the fixture. The answer key misses a High-impact real bug (broken auth fixture) that both runs found."
+  }
+}

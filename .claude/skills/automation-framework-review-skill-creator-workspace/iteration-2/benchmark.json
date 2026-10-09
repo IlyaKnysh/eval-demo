@@ -1,0 +1,719 @@
+{
+  "metadata": {
+    "skill_name": "automation-framework-review-skill-creator",
+    "skill_path": ".claude/skills/automation-framework-review-skill-creator",
+    "executor_model": "claude-opus-5-5",
+    "analyzer_model": "claude-opus-5-5",
+    "timestamp": "2026-10-09T07:18:51Z",
+    "evals_run": [
+      1,
+      2,
+      3
+    ],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 18,
+        "failed": 0,
+        "total": 18,
+        "time_seconds": 539.0,
+        "tokens": 164058,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags BasePage.java as a God Base Class / SRP violation bundling multiple unrelated responsibilities (navigation, waits, assertions, popups, data I/O, misc utilities)",
+          "passed": true,
+          "evidence": "review.md '### God base class: `BasePage` (231 lines, 32 public methods, 9 concerns)' [Impact: High | Effort: Medium]: lists navigation (:32-51), explicit waits (:55-63), instant checks (:69-75), raw element access (:79-99), sleep hacks (:103-115), popup handling (:119-143), assertions (:147-172), file I/O and logging (:176-192), JS/frame/hover utilities (:196-230), and names it SRP/ISP. Line ranges match the manifest section 1."
+        },
+        {
+          "text": "Identifies a missing business-step/flow layer, citing that tests inline the same create-order / register-user sequences directly via page-object calls (at least 3 of the 5 known occurrences across CreateOrderTests.java, RegisterUserTests.java, InvoiceLookupTests.java)",
+          "passed": true,
+          "evidence": "'### Missing business-step/flow layer: every test re-composes raw page actions' says 'There's no steps/, flows/ or similar package' and cites all 5 manifest occurrences: CreateOrderTests.java:35-39, :49-54; InvoiceLookupTests.java:35-39; RegisterUserTests.java:35-40, :49-54 (plus the helpers and FullAdmin/FullInvoice sites)."
+        },
+        {
+          "text": "Identifies layer-boundary leakage: at least 2 of the 4 test files that import org.openqa.selenium.WebDriver/WebElement and call driver.findElement directly instead of going through a page object (ProductGridTests.java, InvoiceLookupTests.java, FullProductLifecycleTests.java, FullInvoiceBillingCycleTests.java)",
+          "passed": true,
+          "evidence": "'### Tests bypass page objects and drive Selenium directly': '4 of 9 test classes import By/WebElement and call driver.findElement directly: FullProductLifecycleTests (13 calls), FullInvoiceBillingCycleTests (7), ProductGridTests (5), InvoiceLookupTests (2)... 27 raw driver.findElement calls'. I re-grepped the fixture: per-file counts 13/7/5/2 = 27, exact match."
+        },
+        {
+          "text": "Identifies raw WebElement/List<WebElement> leakage from public page-object methods (e.g. BasePage.getRawElement/getRawElements, UserManagement.getFirstResultRow, OrderHandler.getAllOrderRows)",
+          "passed": true,
+          "evidence": "'### Page objects leak `WebElement`...': 'OrderHandler.getAllOrderRows() returns List<WebElement> (OrderHandler.java:35), UserManagement.getFirstResultRow() returns WebElement (UserManagement.java:28), and BasePage.getRawElement/getRawElements (BasePage.java:79-85) are public.' All 4 manifest methods are named, and the finding shows tests acting on the raw elements."
+        },
+        {
+          "text": "Identifies cross-file sibling duplication across the 4 *ModifyPage classes (UserModifyPage, OrderModifyPage, ProductModifyPage, InvoiceModifyPage) with near-identical method bodies, not just a single-file God Base Class finding",
+          "passed": true,
+          "evidence": "Separate finding '### Four near-identical `*ModifyPage` classes' [Impact: Medium | Effort: Medium]: all 4 are 50 lines with the same 6 methods, and bodies are 'byte-identical apart from the 5 locator values and one word in the error message (:22-49 in each file)'. It states explicitly: 'This is separate from the BasePage finding.'"
+        },
+        {
+          "text": "Reports a quantified hardcoded-sleep count backed by a grep (expects a count in the 30s-40s range across ~10 files, not just 'some sleeps exist')",
+          "passed": true,
+          "evidence": "'### 38 hardcoded sleeps...': 'The unconditional-waits grep (Thread.sleep|time.sleep|waitForTimeout|setTimeout|implicitlyWait) found 38 Thread.sleep calls in 10 files', with a per-file breakdown (8 in 6 page objects, 30 in 4 test classes). I re-grepped: 38 hits in 10 files, matching manifest section 7."
+        },
+        {
+          "text": "Reports a quantified empty-catch-block / swallowed-exception count backed by a grep (expects a count in the 30s-40s range across ~9 files), and separately flags BasePage.compareElementText's empty catch as a verification utility masking failure as a false match",
+          "passed": true,
+          "evidence": "'### All 49 catch blocks swallow; none rethrows': grep of 'catch (' found 49, classified as 38 empty, 3 sentinel and 8 log-and-continue. The manifest says 37. The 38th is BasePage:131 (dismissCookieBanner), whose body holds only a comment. My own structural count, treating comment-only bodies as empty, is also 38 across 9 files, so the definition is defensible. compareElementText is called out on its own: 'on any exception, the empty catch falls through to return true. So \"couldn't read either element\" reports exactly like \"texts match\".'"
+        },
+        {
+          "text": "Reports a quantified count of assertion-free test methods (expects 4, e.g. in ProductGridTests.java and InvoiceLookupTests.java)",
+          "passed": true,
+          "evidence": "'Assertion-free @Test methods: 6 of 20', naming InvoiceLookupTests.testInvoiceGridLoadsWithoutError, all 3 ProductGridTests methods, and both wip tests. That is the manifest's 4 plus the 2 wip scratch tests. I verified that DebugOrderExportTest and ScratchLoginExperimentTest have 0 Assert. calls and that the @Test total is 20. Counting the wip tests is defensible because testng.xml runs them, and the 4 expected methods are all listed. The count is backed by grep -c '@Test' / 'Assert\\.' plus a full read."
+        },
+        {
+          "text": "Flags the 3 giant multi-feature single-@Test-method test classes (FullAdminWorkflowTests, FullProductLifecycleTests, FullInvoiceBillingCycleTests), each 150+ lines covering many unrelated features",
+          "passed": true,
+          "evidence": "'### Three single-method tests each cover 11-13 unrelated features' [High|Medium] names all 3 classes: 'each have exactly 1 @Test method of about 140 lines... split into 11, 13 and 13 numbered feature blocks'. The ~140 figure is the method body length; the files are 163-165 lines, consistent with the manifest."
+        },
+        {
+          "text": "Flags the nonzero CI retry count (testng.xml retryCount=3 + RetryListener) as masking flakiness, with no quarantine/tracking mechanism",
+          "passed": true,
+          "evidence": "'### Retry policy declared but miswired; no known-issue/skip mechanism': cites testng.xml:8 retryCount=3 and RetryListener.java:13 MAX_RETRY_COUNT = 3. It says 'every failure gets silently re-run up to 3 times... flaky tests would turn green with no record of it' and 'There's no skip-with-reason or known-issue mechanism: SkipException, enabled = false, @Issue/@TmsLink... all have 0 hits.' It also notes that IRetryAnalyzer registered as a listener is miswired, which goes beyond the manifest and is plausible."
+        },
+        {
+          "text": "Flags the scratch/WIP test package (com.acme.crm.wip) as not excluded from the TestNG suite scan",
+          "passed": true,
+          "evidence": "'### Scratch/WIP tests are part of the suite that CI runs': 'testng.xml:13 includes the package com.acme.crm.wip', quoting the 'TODO: delete this... - Dave, 2024' and 'remove before merge' comments. Verified in testng.xml."
+        },
+        {
+          "text": "Flags hardcoded plaintext credentials/environment values (config.properties, DbConnector.java) with no environment-switching mechanism",
+          "passed": true,
+          "evidence": "'### Plaintext credentials committed in 7 files' is a table with config.properties:4, :9 and DbConnector.java:17, among others. '### config.properties is never read; the environment is hardcoded in 33 places': 'Targeting another environment (staging, local) means editing 9 Java files. There's no profile, system-property or env-var mechanism.' The base-URL count of 33 in src/test/java matches my grep."
+        },
+        {
+          "text": "Gives a locator-strategy distribution with real counts/percentages (not just an impression), roughly matching the ~31%/31%/38% positional/id/css split",
+          "passed": true,
+          "evidence": "Distribution uses a selector-type taxonomy over all 84 By.* calls, including the 27 in tests: cssSelector 37 (44%), id 24 (29%), xpath 12 (14%), name 11 (13%). It adds a fragility cut: '21 of 84 are positional XPath or ExtJS auto-generated IDs' (12 positional XPaths + 9 ext-comp IDs). I re-grepped and every count matches. Regrouped into the manifest's taxonomy, it comes to roughly 25% positional / 31% stable id-name / 44% css. The pages-only scope in the manifest gives 17/18/22, about 31/31/38. The run's broader scope explains the shift. It doesn't print the three-way split directly, but the real counts are present and close to the expected split, so I pass it."
+        },
+        {
+          "text": "Does NOT include a heading or paragraph praising any clean dimension (e.g. no 'the core layers are well separated' or similar fluff) вЂ” every surviving heading names a problem",
+          "passed": true,
+          "evidence": "All 32 finding headings and 11 section headings name a problem or problem area. There is no strengths section. The only positive notes are scoping clauses inside problem findings: 'Plugin and dependency version properties are named correctly... Only currency is the issue' (inside the stack-currency finding), 'Judged harmless, but only because they're labelled best-effort' (inside error handling), and 'LSP: clean (0 overrides)' inside the SOLID checklist comment. None is a praise heading or a standalone praise paragraph."
+        },
+        {
+          "text": "Every individual finding is tagged with [Impact: High/Medium/Low | Effort: High/Medium/Low] immediately after its heading, using only those three legal values",
+          "passed": true,
+          "evidence": "check_format.py: 32 Impact/Effort tags, 0 illegal values. The only untagged headings it reports are the 11 '##' category section headers (Build and CI, Secrets and environment, etc.), which group findings and aren't findings themselves. I checked manually that each of the 32 '###' finding headings has a tag on the next line, written in inline code (e.g. `[Impact: High | Effort: Low]`)."
+        },
+        {
+          "text": "Produces a FIRST-principles table (Fast/Independent/Repeatable/Self-validating/Timely) with a verdict and evidence for each letter",
+          "passed": true,
+          "evidence": "'## FIRST principles table' has all 5 letters (check_format found all 5) with Verdict and Evidence columns. Fast/Independent/Repeatable/Self-validating are Fails, each with specific counts. Timely is 'N/A statically', with the reason and related evidence (no tagging, full suite on every push)."
+        },
+        {
+          "text": "Produces a separate checklist-tab table with exact columns Section | Check | Status (+/-) | Comments, containing only rows this review's evidence actually backs (not the Tools/Strategy/AI-Usage sections)",
+          "passed": true,
+          "evidence": "checklist.md (also appended to review.md) has the exact header '| Section | Check | Status (+/-) | Comments |' (check_format: checklist_header_found true, 20 rows). Sections used are only Framework, Running and Processes. The preamble says Tools, Strategy, AI Usage and the questionnaire-only rows are excluded, and the parallel row is omitted because parallel isn't configured. Each row's comment cites file:line evidence from the review."
+        },
+        {
+          "text": "Checklist table includes a '-' row for 'Unconditional waits are not a common practice' and for 'Framework complies with SOLID' given the God Base Class finding",
+          "passed": true,
+          "evidence": "Rows present: '| Framework | Unconditional waits are not a common practice | - | 38 Thread.sleep in 10 files...' and '| Framework | Framework complies with SOLID | - | SRP/ISP: BasePage God class...'."
+        }
+      ],
+      "notes": [
+        "Compile failure (javax.mail) not confirmed by running mvn",
+        "Non-headless Chrome failing in CI and RetryListener behaviour at suite start are marked as hypotheses",
+        "openOrdersMenu navigation mismatch depends on live UI",
+        "Read files directly instead of delegating to subagents as the skill prefers, because the fixture is small"
+      ]
+    },
+    {
+      "eval_id": 2,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.88,
+        "passed": 14,
+        "failed": 2,
+        "total": 16,
+        "time_seconds": 412.2,
+        "tokens": 125271,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags a missing business-step/flow layer across at least 3 of the 4 known test functions (test_update_account_name, test_update_account_status, test_update_ticket_priority, test_update_subscription_seats) that each inline the same create->open->modify->save->assert sequence",
+          "passed": true,
+          "evidence": "Finding 15 'Missing business-step layer: 5 hybrid tests re-compose the same 4-step skeleton inline' cites test_account_lifecycle.py:13,33 (update_account_name, update_account_status), test_subscription_lifecycle.py:8,29 (update_subscription_seats plus cancel) and test_ticket_lifecycle.py:10 (update_ticket_priority). All 4 known tests are covered, and it notes 'No steps/ or flows/ module exists'."
+        },
+        {
+          "text": "Flags layer-boundary leakage in test_billing_sync_api.py and test_ticket_export_api.py (raw `requests` import/calls bypassing the existing *Client wrapper classes), and explicitly notes the sibling API test files that use the wrappers correctly (contrast, not a blanket API-layer complaint)",
+          "passed": false,
+          "evidence": "Finding 11 correctly flags raw `requests` in exactly 2 files (test_billing_sync_api.py:21,:35; test_ticket_export_api.py:22). It notes SubscriptionClient.trigger_billing_sync has 0 callers and that TicketClient.export_ticket is used by the neighbouring test in the same file. It never names the sibling files test_account_api.py / test_subscription_api.py as using the wrappers correctly. The only contrast is within the same file, so the 'explicitly notes the sibling API test files' clause is not met."
+        },
+        {
+          "text": "Flags the raw-token / domain-representation inconsistency in the SAME two files (test_billing_sync_api.py, test_ticket_export_api.py) as a DISTINCT finding from the raw-requests layering issue, not merged into one bullet",
+          "passed": false,
+          "evidence": "The raw-token issue ('Credentials expressed three ways': Config.API_TOKEN at test_billing_sync_api.py:24,:38 and os.getenv at test_ticket_export_api.py:21) sits under the SAME numbered finding 11 as the raw-requests layering issue. Finding 11 has a single heading 'API tests bypass the client layer and the typed auth concept', a single [Impact: Medium | Effort: Low] tag and a single combined remediation (rollup item 10). The two issues have separate bold sub-sections, but they are one finding, not distinct ones. Only the checklist table splits them (the 'consistent' row vs the 'layered' row)."
+        },
+        {
+          "text": "Flags cross-file sibling duplication across the 4 *_modify_page.py classes (account, contact, ticket, subscription) with near-identical bodies differing only in label text",
+          "passed": true,
+          "evidence": "Finding 16 'Four *ModifyPage classes are copy-paste clones' names account/contact/ticket/subscription_modify_page.py: 'only 3 changed lines per file: the heading text, the field label and the success toast text', and proposes one parameterized EntityModifyPage."
+        },
+        {
+          "text": "Flags the shared module-level mutable state in test_ticket_lifecycle.py (_CREATED_TICKET_IDS list) as a test-independence / order-dependency violation, ideally noting the IndexError that results from running the dependent test in isolation",
+          "passed": true,
+          "evidence": "Finding 8: 'tests/hybrid/test_ticket_lifecycle.py:7 declares _CREATED_TICKET_IDS = []' ... 'Running the second test on its own (-k, --lf, IDE single-test run, or any future pytest-xdist split) gives IndexError instead of an assertion failure.' Verified at fixture lines 7, 33 and 42."
+        },
+        {
+          "text": "Reports a count of assertion-free tests matching or close to 2 (test_delete_account_removes_from_list, test_delete_account)",
+          "passed": true,
+          "evidence": "Finding 6: 'Mandatory grep result: 2 of 23 test functions contain no assert at all', naming test_delete_account (test_account_api.py:20) and test_delete_account_removes_from_list (test_account_lifecycle.py:53). The 3 tautological-assert tests are kept as a separate category."
+        },
+        {
+          "text": "Flags the 2 bare except:pass blocks (in test_ticket_export_api.py's comparison helper and test_admin_console_nav.py's comparison helper) as swallowed exceptions in verification/comparison utilities specifically",
+          "passed": true,
+          "evidence": "Finding 20 'Bare except: swallows in verification helpers' has a table with test_ticket_export_api.py:37-41 _content_matches_expected_header and test_admin_console_nav.py:25-29 _values_are_equivalent, '2 catch sites in the repo, and both swallow.' This exactly matches the fixture."
+        },
+        {
+          "text": "Flags the nonzero pytest-rerunfailures retry config (reruns=2) in pytest.ini and CI as masking flakiness with no quarantine/tracking mechanism",
+          "passed": true,
+          "evidence": "Finding 12 'Retries mask failures: reruns = 2 in two places, with no flaky tracking': pytest.ini:14-15 and ci.yml:31. It lists '0 @pytest.mark.flaky or xfail markers', 'no quarantine list', and 'no --only-rerun filter'."
+        },
+        {
+          "text": "Flags exactly the 2 naming outliers (AdminConsole, SettingsScreen) among page objects without over-generalizing to claim the whole pages/ package is inconsistent (8 of 10 follow *Page correctly)",
+          "passed": true,
+          "evidence": "Finding 24: 'Page-object classes: 8 of 10 end in Page. The outliers are AdminConsole and SettingsScreen.' It also notes the PascalCase module filenames (allowed by the manifest) and does not generalize to the whole package."
+        },
+        {
+          "text": "Flags the hardcoded plaintext-looking API key in config.py (INVOICING_PROVIDER_API_KEY = \"sk-fake1234567890\") as inconsistent with the os.getenv() pattern used by every other credential in the same class",
+          "passed": true,
+          "evidence": "Finding 13: config.py:26 INVOICING_PROVIDER_API_KEY = \"sk-fake1234567890\"; 'Every other credential in the class comes from os.getenv (:18-21)'; .env.example:14 documents it as an env var."
+        },
+        {
+          "text": "Does NOT flag the fixture-based DI/composition in conftest.py as a God Base Class or inheritance-chain problem (it is deliberately clean)",
+          "passed": true,
+          "evidence": "No God Base Class or inheritance claim. The checklist SOLID row says '+ No god base class'. The conftest findings (1: AttributeError from AuthContext calling authenticate on AccountClient; 2: unauthenticated ticket/subscription clients; 9: trace-save precedence; 10: autouse browser on API tests) are concrete wiring defects, not complaints about the DI pattern. I verified finding 1 against the code: conftest.py:78 passes account_client, auth.py:34 calls .authenticate, and authenticate is defined only on AuthClient (base_client.py:24). It is a real bug."
+        },
+        {
+          "text": "Does NOT flag the builder-pattern test-data factories (AccountBuilder, ContactBuilder, TicketBuilder, SubscriptionBuilder) as missing or inconsistent",
+          "passed": true,
+          "evidence": "No claim that builders are missing or inconsistently used. Finding 3 reports a concrete cross-run uniqueness defect (factories.py:12 _seq = itertools.count(1) restarts per process; verified) and notes that SubscriptionBuilder already uses uuid. Finding 18 lists ContactBuilder as unused (dead code). Neither is a pattern complaint."
+        },
+        {
+          "text": "Does NOT claim hardcoded sleeps exist anywhere in the fixture (there are deliberately zero)",
+          "passed": true,
+          "evidence": "Finding 19: 'Mandatory grep result: 0 unconditional waits (time.sleep, wait_for_timeout, setTimeout and implicitlyWait all return 0)'. The checklist row is '+'."
+        },
+        {
+          "text": "Does NOT flag the locator strategy as inconsistent or fragile (all page objects use get_by_role/get_by_label/get_by_test_id/get_by_text consistently)",
+          "passed": true,
+          "evidence": "The scope line says it did not question 'role/test-id locators'. Finding 5 (SubscriptionListPage.open_subscription clicks a link by plan_code, which every subscription shares as PRO-MONTHLY; verified at list_pages.py:23 and factories.py:88) and finding 3's exact=True note are concrete lookup-key/data defects, not a claim that the semantic locator strategy is inconsistent or fragile. Finding 17 is about layering (raw page.get_by_* in tests), not locator choice."
+        },
+        {
+          "text": "Does NOT include fluff/praise sentences for the clean dimensions (fixtures, factories, locators, diagnostics) in the verdict paragraph вЂ” the user explicitly asked not to relitigate what's fine",
+          "passed": true,
+          "evidence": "The 'Verdict up front' block has 3 bullets, all problems (broken auth fixture, non-repeatable data, smaller issues), with no praise. The scope note's 'so I did not question the design choices there' explains scope and is not praise. Clean verdicts appear only in the FIRST and checklist tables."
+        },
+        {
+          "text": "Every finding is tagged with [Impact: High/Medium/Low | Effort: High/Medium/Low] using only those three legal values",
+          "passed": true,
+          "evidence": "check_format.py reports 24 impact_effort_tags with 0 illegal values. grep confirms all 24 '## N.' finding headings carry a legal tag (3 High/Low, 12 Medium/Low, 2 Medium/Medium, 7 Low/Low) and 0 are untagged."
+        }
+      ],
+      "notes": [
+        "Unsure whether pytest-rerunfailures 14.0 honours `reruns` as a pytest.ini key; made no claim",
+        "Assumed the framework dir is the repo root for the .gitignore check",
+        "Reported real defects inside the user's 'solid' areas (auth wiring, builder uniqueness, plan_code lookup), framed as concrete bugs rather than pattern critiques",
+        "First batched cat output was truncated; files were re-read individually"
+      ]
+    },
+    {
+      "eval_id": 3,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.82,
+        "passed": 14,
+        "failed": 3,
+        "total": 17,
+        "time_seconds": 324.9,
+        "tokens": 127890,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Does NOT claim a God Base Class exists (BasePage.ts is deliberately slim: goto()/waitForLoad() only)",
+          "passed": true,
+          "evidence": "BasePage is called slim and is not flagged. Checklist SOLID row: 'BasePage is 20 lines and handles navigation only (BasePage.ts:10-20)'. There is no God-class finding."
+        },
+        {
+          "text": "Does NOT claim a missing business-step/flow layer exists (src/flows/orderFlows.ts, userFlows.ts, authFlows.ts are the real flow layer and every test uses them)",
+          "passed": true,
+          "evidence": "Layering row: 'Tests go through src/flows/ (6 functions) and page objects.' There is no claim of a missing flow layer."
+        },
+        {
+          "text": "Does NOT claim layer-boundary leakage into tests (no test file imports @playwright/test directly per the fixture's design)",
+          "passed": true,
+          "evidence": "Checklist layering row: '0 of 5 spec files import @playwright/test ... No public method returns a Locator.' The transcript grep confirms 0. Its suggestion that flows import test from @playwright/test is about src/flows, not tests."
+        },
+        {
+          "text": "Does NOT claim cross-file sibling duplication between OrderModifyPage and UserModifyPage as an uncontrolled DRY violation (they share logic via the composed EntityModifyPanel helper, which is the correct fix pattern, not the defect)",
+          "passed": true,
+          "evidence": "There is no sibling-duplication finding. The SOLID and DRY rows credit EntityModifyPanel: 'Shared panel logic is composed rather than inherited' and 'Builders and EntityModifyPanel remove the large duplications.'"
+        },
+        {
+          "text": "Does NOT claim hardcoded sleeps exist (zero page.waitForTimeout() calls in the fixture)",
+          "passed": true,
+          "evidence": "'Grep for unconditional sleeps ... 0 hits.' The networkidle finding is framed as a discouraged load-state wait, not a hard sleep, and the transcript keeps the two separate."
+        },
+        {
+          "text": "Does NOT claim fragile/positional locators exist (fixture uses only getByRole/getByLabel/getByTestId)",
+          "passed": true,
+          "evidence": "There is no positional or XPath locator claim. The transcript counts getByRole 13, getByLabel 6, getByTestId 5, and locator(/xpath/nth(/getByText 0. The getByLabel('SKU') strict-mode remark is about the multi-item test logic, not locator fragility."
+        },
+        {
+          "text": "Does NOT flag EntityModifyPanel for not ending in 'Page' as a naming inconsistency (it is explicitly documented as intentionally not a page object)",
+          "passed": true,
+          "evidence": "EntityModifyPanel naming is never flagged. The naming check counts '6 of 6 page objects end in Page' and is clean."
+        },
+        {
+          "text": "Does NOT flag submitLoginAttempt as a duplicate/inconsistent second login method (it is a distinct, correctly-named method for the negative-login test path)",
+          "passed": false,
+          "evidence": "Tagged finding '## The negative-login path contradicts the \"never log in with a raw credential string\" rule [Impact: Low | Effort: Low]' traces login.spec.ts:26 -> attemptInvalidLogin -> LoginPage.submitLoginAttempt(email, password). It concludes 'So the suite has two ways to express the same login concept.' That is the anticipated false positive: submitLoginAttempt treated as an inconsistent second login method. Mitigating context: CONTRIBUTING.md:60-62 does say 'Never log in with a raw credential string' with no stated exception, so the doc gap is real. But the finding uses the excluded framing, and it is carried into the checklist 'Framework is consistent' row as well."
+        },
+        {
+          "text": "Does NOT flag the per-test UI login in adminSession/standardSession fixtures as a missing storageState optimization framed as a defect (an optional enhancement note is fine; calling it wrong is not)",
+          "passed": true,
+          "evidence": "storageState is never mentioned, and per-test login is not called a defect. FIRST Independent credits 'a fresh login per test'."
+        },
+        {
+          "text": "Does NOT claim test-data cleanup/teardown is missing (the createdRecords fixture registers and tears down all 4 data-creating specs)",
+          "passed": true,
+          "evidence": "Cleanup is acknowledged as present: 'Teardown cleanup runs on failure (fixtures.ts:69-76)'. The Low finding is about sequential deletes stopping at the first failure, not missing teardown."
+        },
+        {
+          "text": "Does NOT claim retries/trace capture are misconfigured (retries: 0 deliberately pairs with trace: 'on-first-retry'... this is documented and correct)",
+          "passed": true,
+          "evidence": "There is no misconfiguration claim. Checklist: 'Trace, screenshot and video are kept on failure (playwright.config.ts:33-35)'; 'retries: 0 ... so no flakiness is being masked.' The fixture actually uses trace: 'retain-on-failure', which the review reflects correctly."
+        },
+        {
+          "text": "If thorough, correctly surfaces the missing package-lock.json / npm ci mismatch (CI runs `npm ci` but no lockfile is committed) as a genuine, non-seeded defect",
+          "passed": true,
+          "evidence": "'## No lockfile committed; npm ci fails in both CI jobs [Impact: High | Effort: Low]' cites e2e-tests.yml:27 and :65. Verified: npm ci is on both lines. It is also item 1 in the priority list, and the CI checklist row is '-'."
+        },
+        {
+          "text": "If thorough, correctly surfaces the tsconfig.json lib omitting ES2022 breaking the `cause` property typecheck in errors.ts as a genuine, non-seeded defect",
+          "passed": false,
+          "evidence": "Not surfaced. The review never mentions tsconfig lib, ES2021/ES2022, or the errors.ts this.cause typecheck failure. The checklist says CI enforces type checking but does not notice the check would fail. Verified in the fixture: tsconfig.json:5 'lib': ['ES2021','DOM'], and errors.ts:13 'this.cause = cause'."
+        },
+        {
+          "text": "If thorough, correctly surfaces the duplicated nextSuffix() helper across orderFactory.ts and userFactory.ts as a real cross-file duplication worth extracting",
+          "passed": true,
+          "evidence": "'## The nextSuffix() ID generator is copy-pasted between the two factories [Impact: Low | Effort: Low]': 'orderFactory.ts:3-16 and userFactory.ts:3-16 hold identical copies ... Move it to src/utils/uniqueId.ts.'"
+        },
+        {
+          "text": "Produces a FIRST-principles table with mostly passing/clean verdicts, not manufactured failures",
+          "passed": true,
+          "evidence": "FIRST table: Fast 'Pass, with caveats', Independent 'Pass', Repeatable 'Pass, with one hypothesis', Self-validating 'Fails (5 of 15)', Timely 'N/A statically'. The one Fail is backed by the manifest's genuine unseeded 'tests assert less than their names claim' bug, so it is not manufactured."
+        },
+        {
+          "text": "The verdict-up-front paragraph does not read as a tour of what's good (no 'the architecture is clean, locators are stable, waits are solid' style praise) вЂ” if genuinely little is wrong, it says so briefly rather than touring strengths",
+          "passed": true,
+          "evidence": "The verdict opens with 'Two things should block sign-off' and names the over-claiming tests and the missing lockfile. 'The rest are small fixes: ...' lists issues only. It does not tour strengths."
+        },
+        {
+          "text": "Total finding count is low (roughly 0-5 real findings), consistent with this being a deliberately clean fixture вЂ” a review padding this out with 10+ findings to seem thorough is a failure mode to flag",
+          "passed": false,
+          "evidence": "Count: 11 distinct Impact/Effort-tagged findings plus 1 'Noted trade-off' bullet. check_format reports 11 finding headings, one of them the untagged trade-off heading. The findings: (1) over-claiming tests, (2) lockfile, (3) networkidle, (4) login never confirms plus placeholder creds, (5) UI presetups, (6) pagination hypothesis, (7) teardown stops at first failure, (8) nextSuffix duplication, (9) login-sequence duplication, (10) negative-login raw creds, (11) no ESLint, (12) unused members. Only 4 match the manifest's genuine bugs (1, 2, 5, 8). Most of the rest are speculative or low-value: pagination is 'to be verified', and teardown robustness, ESLint and dead code add little. That is well beyond 'roughly 0-5'. The run is padded, though much less than the 23-finding baseline."
+        }
+      ],
+      "notes": [
+        "Whether the multi-item test overwrites or hits a strict-mode error depends on the app markup",
+        "Pagination sort and /api proxying are unverified",
+        "Read all files directly instead of delegating to subagents, which the skill prefers"
+      ]
+    },
+    {
+      "eval_id": 1,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.56,
+        "passed": 10,
+        "failed": 8,
+        "total": 18,
+        "time_seconds": 296.1,
+        "tokens": 107180,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags BasePage.java as a God Base Class / SRP violation bundling multiple unrelated responsibilities (navigation, waits, assertions, popups, data I/O, misc utilities)",
+          "passed": true,
+          "evidence": "'#### M1. `BasePage` is a god class (violates SRP)': 'mixes navigation, waits, \"hack\" sleeps, popup handling, assertions, file logging, CSV result writing, JS scrolling and highlighting, frames, dropdowns and hover', and quotes the self-describing Javadoc (:17-20)."
+        },
+        {
+          "text": "Identifies a missing business-step/flow layer, citing that tests inline the same create-order / register-user sequences directly via page-object calls (at least 3 of the 5 known occurrences across CreateOrderTests.java, RegisterUserTests.java, InvoiceLookupTests.java)",
+          "passed": false,
+          "evidence": "The only related text is one bullet under M4 (copy-paste duplication): 'The order-creation steps are duplicated across CreateOrderTests, FullAdminWorkflowTests, FullInvoiceBillingCycleTests and InvoiceLookupTests', with the recommendation 'Add flow methods such as OrderCreatePage.createOrder(OrderData)'. It frames this as DRY, not as a missing steps/flow layer, and in fact proposes putting the flow inside a page object. It cites no methods or line numbers, and never mentions the repeated register-user sequence in RegisterUserTests. It doesn't cite 3 of the 5 specific occurrences."
+        },
+        {
+          "text": "Identifies layer-boundary leakage: at least 2 of the 4 test files that import org.openqa.selenium.WebDriver/WebElement and call driver.findElement directly instead of going through a page object (ProductGridTests.java, InvoiceLookupTests.java, FullProductLifecycleTests.java, FullInvoiceBillingCycleTests.java)",
+          "passed": true,
+          "evidence": "'#### M3. Raw Selenium in tests...': 'Tests call driver.findElement(...) directly 27 times, mostly in FullProductLifecycleTests, FullInvoiceBillingCycleTests, InvoiceLookupTests and ProductGridTests', with no page objects for product grid or invoice list. All 4 files named, and the total of 27 matches my grep."
+        },
+        {
+          "text": "Identifies raw WebElement/List<WebElement> leakage from public page-object methods (e.g. BasePage.getRawElement/getRawElements, UserManagement.getFirstResultRow, OrderHandler.getAllOrderRows)",
+          "passed": true,
+          "evidence": "M3: 'BasePage.getRawElement(s) (:79-85), OrderHandler.getAllOrderRows() (:35-37) and UserManagement.getFirstResultRow() (:28-30) return WebElements to tests.' Checklist row 10 repeats this."
+        },
+        {
+          "text": "Identifies cross-file sibling duplication across the 4 *ModifyPage classes (UserModifyPage, OrderModifyPage, ProductModifyPage, InvoiceModifyPage) with near-identical method bodies, not just a single-file God Base Class finding",
+          "passed": true,
+          "evidence": "M4: 'InvoiceModifyPage, OrderModifyPage, ProductModifyPage and UserModifyPage are identical (50 lines each) apart from locator values and the error message', and recommends an EntityModifyForm component. This is distinct from M1 (BasePage)."
+        },
+        {
+          "text": "Reports a quantified hardcoded-sleep count backed by a grep (expects a count in the 30s-40s range across ~10 files, not just 'some sleeps exist')",
+          "passed": true,
+          "evidence": "H3: 'There are 38 Thread.sleep calls: 8 in page objects (BasePage.java:105,112, DashboardPage.java:19, LoginPage.java:22,35, OrderCreatePage.java:63, OrderHandler.java:29, UserRegisterPage.java:63) and 30 in tests (FullAdmin 9, FullInvoice 10, FullProduct 10, ProductGrid 1)', which covers 10 files. Section 5 says 'grep -rn \"Thread.sleep\" src | wc -l returned 38'. Verified."
+        },
+        {
+          "text": "Reports a quantified empty-catch-block / swallowed-exception count backed by a grep (expects a count in the 30s-40s range across ~9 files), and separately flags BasePage.compareElementText's empty catch as a verification utility masking failure as a false match",
+          "passed": true,
+          "evidence": "The executive summary and H3 give '36 empty catch blocks that swallow InterruptedException'. The transcript's grep step records 'empty InterruptedException catches: 36', which is correct: 38 sleeps minus the 2 log-and-continue catches. That definition is narrower than the manifest's 37: it omits the empty catch (Exception) at BasePage:131/169, which M5 lists separately. It's still in the expected range and grep-backed. H5 flags compareElementText separately: 'returns true when an exception is thrown, so a missing element counts as a match... would produce false passes if anyone adopted it.' It gives no per-file spread for catches, but the sleep breakdown implies it."
+        },
+        {
+          "text": "Reports a quantified count of assertion-free test methods (expects 4, e.g. in ProductGridTests.java and InvoiceLookupTests.java)",
+          "passed": false,
+          "evidence": "H5 lists the cases individually: 'ProductGridTests.java: all 3 tests ... contain no assertion', InvoiceLookupTests.testInvoiceGridLoadsWithoutError discards isDisplayed(), and 'The scratch and debug tests (wip/*) contain no assertions.' It never states a total. The only aggregate, 'Roughly a third of the @Test methods cannot fail on a functional regression', mixes vacuous and tautological assertions in with assertion-free methods and is approximate. All 4 methods are identified, so this is borderline, but the assertion asks for a quantified count, and the burden of proof isn't met."
+        },
+        {
+          "text": "Flags the 3 giant multi-feature single-@Test-method test classes (FullAdminWorkflowTests, FullProductLifecycleTests, FullInvoiceBillingCycleTests), each 150+ lines covering many unrelated features",
+          "passed": true,
+          "evidence": "'#### H8. Monolithic \"mega\" tests': 'FullAdminWorkflowTests, FullInvoiceBillingCycleTests and FullProductLifecycleTests each contain one @Test method of about 140 lines that chains 11-13 numbered features across unrelated areas'."
+        },
+        {
+          "text": "Flags the nonzero CI retry count (testng.xml retryCount=3 + RetryListener) as masking flakiness, with no quarantine/tracking mechanism",
+          "passed": true,
+          "evidence": "C2: cites testng.xml:4-8 and RetryListener.java:13 MAX_RETRY_COUNT = 3. 'If it were wired correctly, a blanket 3x retry would hide the timing problems', and it recommends to 'report retried tests as flaky rather than passed', which implies there is currently no tracking. Checklist row 26 'Retry policy is deliberate, limited and reported' is marked No. It's weaker than the skill run on the quarantine/known-issue part (no explicit 'no skip/quarantine mechanism' statement), but the masking concern and the missing flaky reporting are both flagged."
+        },
+        {
+          "text": "Flags the scratch/WIP test package (com.acme.crm.wip) as not excluded from the TestNG suite scan",
+          "passed": true,
+          "evidence": "'#### H11. WIP/debug tests are part of the CI suite': 'testng.xml:13 includes the com.acme.crm.wip package', quoting the TODO and 'remove before merge' comments."
+        },
+        {
+          "text": "Flags hardcoded plaintext credentials/environment values (config.properties, DbConnector.java) with no environment-switching mechanism",
+          "passed": true,
+          "evidence": "C3 cites config.properties:3-9 and DbConnector.java:15-17 plus the Java login literals. H2: 'Nothing in src loads config.properties... You cannot change the environment without editing about 35 lines of Java'. C4 recommends 'Introduce environment selection (-Denv=qa) with per-environment config'."
+        },
+        {
+          "text": "Gives a locator-strategy distribution with real counts/percentages (not just an impression), roughly matching the ~31%/31%/38% positional/id/css split",
+          "passed": false,
+          "evidence": "H4 reports only the fragile subsets ('12 positional XPaths', '9 ExtJS auto-generated ids'), and checklist row 16 says only 'Some id and name locators'. There's no total locator count, no count of id/name or CSS locators, and no percentages, so no distribution is given."
+        },
+        {
+          "text": "Does NOT include a heading or paragraph praising any clean dimension (e.g. no 'the core layers are well separated' or similar fluff) вЂ” every surviving heading names a problem",
+          "passed": false,
+          "evidence": "review.md has a dedicated section '## 2. What is done reasonably well' with praise bullets: 'A page-object layer exists... Locators are private final By fields', 'Some locators are semantic and stable', 'Driver cleanup is attempted', 'The project uses a standard Maven layout...'."
+        },
+        {
+          "text": "Every individual finding is tagged with [Impact: High/Medium/Low | Effort: High/Medium/Low] immediately after its heading, using only those three legal values",
+          "passed": false,
+          "evidence": "check_format.py reports 0 Impact/Effort tags. Findings use a single Critical/High/Medium/Low severity grouping (C1-C5, H1-H11, M1-M10, L1-L9) with no Effort dimension."
+        },
+        {
+          "text": "Produces a FIRST-principles table (Fast/Independent/Repeatable/Self-validating/Timely) with a verdict and evidence for each letter",
+          "passed": false,
+          "evidence": "There's no FIRST table. check_format found only the word 'Independent', which comes from a checklist row ('Tests are independent and order-agnostic'), not from a FIRST table."
+        },
+        {
+          "text": "Produces a separate checklist-tab table with exact columns Section | Check | Status (+/-) | Comments, containing only rows this review's evidence actually backs (not the Tools/Strategy/AI-Usage sections)",
+          "passed": false,
+          "evidence": "checklist.md uses the columns '# | Area | Checklist item | Status | Evidence | Recommendation' with Yes/Partial/No statuses (check_format: checklist_header_found false). The run says it invented a generic layout because the team's template wasn't provided. This failure is expected for a baseline."
+        },
+        {
+          "text": "Checklist table includes a '-' row for 'Unconditional waits are not a common practice' and for 'Framework complies with SOLID' given the God Base Class finding",
+          "passed": false,
+          "evidence": "Neither row exists. The closest equivalents are row 14 'No hard-coded sleeps; explicit waits used | No' and row 11 'Single Responsibility (no god classes) | No'. They use a different check wording and a different status vocabulary (No rather than '-'), and there's no SOLID row as such."
+        }
+      ],
+      "notes": [
+        "Compile failure and listener-startup failure inferred, not observed",
+        "Checklist column layout invented because the team template was unknown",
+        "Checklist columns need renaming to match the team spreadsheet",
+        "Used a generic Area/Checklist item/Status/Evidence/Recommendation layout"
+      ]
+    },
+    {
+      "eval_id": 2,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.69,
+        "passed": 11,
+        "failed": 5,
+        "total": 16,
+        "time_seconds": 169.3,
+        "tokens": 76896,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags a missing business-step/flow layer across at least 3 of the 4 known test functions (test_update_account_name, test_update_account_status, test_update_ticket_priority, test_update_subscription_seats) that each inline the same create->open->modify->save->assert sequence",
+          "passed": true,
+          "evidence": "M6 'Repeated hybrid steps are written out inline in every test': 'create via API -> open in UI -> modify -> save -> verify via API' is copied in test_account_lifecycle.py:13-50 (both update tests), test_subscription_lifecycle.py:8-27 (update_subscription_seats) and test_ticket_lifecycle.py:10-28 (update_ticket_priority). All 4 are covered, and it suggests extracting step helpers."
+        },
+        {
+          "text": "Flags layer-boundary leakage in test_billing_sync_api.py and test_ticket_export_api.py (raw `requests` import/calls bypassing the existing *Client wrapper classes), and explicitly notes the sibling API test files that use the wrappers correctly (contrast, not a blanket API-layer complaint)",
+          "passed": false,
+          "evidence": "H5 mentions that two files bypass the clients (test_billing_sync_api.py:21-26,35-40; test_ticket_export_api.py:21-26), and notes that trigger_billing_sync is unused and export_ticket exists. This sits inside a broader 'API auth is inconsistent and mostly absent' finding, and it never names test_account_api.py / test_subscription_api.py as the siblings that use the wrappers correctly."
+        },
+        {
+          "text": "Flags the raw-token / domain-representation inconsistency in the SAME two files (test_billing_sync_api.py, test_ticket_export_api.py) as a DISTINCT finding from the raw-requests layering issue, not merged into one bullet",
+          "passed": false,
+          "evidence": "Merged: H5's bullet 'test_billing_sync_api.py:21-26 and 35-40 use raw requests.post with Config.API_TOKEN' and 'test_ticket_export_api.py:21-26 uses raw requests.get with os.getenv(\"SUBTRACK_API_TOKEN\")' put the raw-token and raw-requests issues in the same bullets, inside one finding."
+        },
+        {
+          "text": "Flags cross-file sibling duplication across the 4 *_modify_page.py classes (account, contact, ticket, subscription) with near-identical bodies differing only in label text",
+          "passed": true,
+          "evidence": "L2: 'The four *ModifyPage classes are near-identical; they could share a parameterized base.' L1 adds that update_name on Subscription/TicketModifyPage is a copy-paste name. The coverage is thin (no per-file evidence or 'only labels differ' detail), but the cross-file duplication is correctly flagged."
+        },
+        {
+          "text": "Flags the shared module-level mutable state in test_ticket_lifecycle.py (_CREATED_TICKET_IDS list) as a test-independence / order-dependency violation, ideally noting the IndexError that results from running the dependent test in isolation",
+          "passed": true,
+          "evidence": "H3: 'tests/hybrid/test_ticket_lifecycle.py:7, 31-44: test_second_test_relies_on_previous_ticket reads _CREATED_TICKET_IDS[-1]... Running it alone, under -k, under pytest-xdist... gives an IndexError or a stale ID.'"
+        },
+        {
+          "text": "Reports a count of assertion-free tests matching or close to 2 (test_delete_account_removes_from_list, test_delete_account)",
+          "passed": false,
+          "evidence": "No count of assertion-free tests is reported. The H1 table correctly labels test_delete_account 'No assertion' and test_delete_account_removes_from_list 'with no assertion that...'. But the only count the review gives is 'At least 7 tests assert nothing meaningful, or test something other than what their name says' (Bottom line). That number mixes no-assert, tautological and misnamed tests and is not close to 2."
+        },
+        {
+          "text": "Flags the 2 bare except:pass blocks (in test_ticket_export_api.py's comparison helper and test_admin_console_nav.py's comparison helper) as swallowed exceptions in verification/comparison utilities specifically",
+          "passed": true,
+          "evidence": "H2 'Bare except: pass in verification helpers hides real failures': test_ticket_export_api.py:37-41 and test_admin_console_nav.py:25-29, both identified as helpers."
+        },
+        {
+          "text": "Flags the nonzero pytest-rerunfailures retry config (reruns=2) in pytest.ini and CI as masking flakiness with no quarantine/tracking mechanism",
+          "passed": true,
+          "evidence": "H4 'Retries are on everywhere and configured twice, which hides the problems above': pytest.ini:14-15 reruns = 2 and ci.yml:31 --reruns 2. It says 'Nothing reports or fails on flaky passes' and the fix is to 'track flaky tests explicitly'."
+        },
+        {
+          "text": "Flags exactly the 2 naming outliers (AdminConsole, SettingsScreen) among page objects without over-generalizing to claim the whole pages/ package is inconsistent (8 of 10 follow *Page correctly)",
+          "passed": true,
+          "evidence": "L1: 'src/pages/AdminConsole.py and SettingsScreen.py use PascalCase module names (PEP 8) and classes without the *Page suffix used everywhere else.' This is correctly scoped to the 2 outliers. The extra nits (list_pages.py holding two classes; 'factories/factories.py contains *Builder classes') do not claim the pages package is inconsistent."
+        },
+        {
+          "text": "Flags the hardcoded plaintext-looking API key in config.py (INVOICING_PROVIDER_API_KEY = \"sk-fake1234567890\") as inconsistent with the os.getenv() pattern used by every other credential in the same class",
+          "passed": true,
+          "evidence": "H6: 'src/core/config.py:26 hardcodes INVOICING_PROVIDER_API_KEY = \"sk-fake1234567890\". This happens even though .env.example:14 declares the env var.' Fix: 'Read the value with os.getenv like every other secret'."
+        },
+        {
+          "text": "Does NOT flag the fixture-based DI/composition in conftest.py as a God Base Class or inheritance-chain problem (it is deliberately clean)",
+          "passed": true,
+          "evidence": "No God Base Class or inheritance claim. В§2-A says 'DI composition is the right approach'. The conftest findings are concrete bugs (C1 AttributeError, verified real) plus M2 (custom browser/context/page fixtures shadow pytest-playwright's), which is a plugin-duplication point, not an inheritance-chain claim."
+        },
+        {
+          "text": "Does NOT flag the builder-pattern test-data factories (AccountBuilder, ContactBuilder, TicketBuilder, SubscriptionBuilder) as missing or inconsistent",
+          "passed": true,
+          "evidence": "В§2-B says 'Builders (the fluent builder pattern is good)' and reports only the cross-run uniqueness defect (verified real). L1's odd nit 'factories/factories.py contains *Builder classes' is a module-naming remark and does not claim builders are missing or inconsistently used. В§3 lists 'Builder API shape' as fine."
+        },
+        {
+          "text": "Does NOT claim hardcoded sleeps exist anywhere in the fixture (there are deliberately zero)",
+          "passed": true,
+          "evidence": "В§3: 'No time.sleep or wait_for_timeout anywhere (grep: 0 hits)'. No sleep claim appears anywhere."
+        },
+        {
+          "text": "Does NOT flag the locator strategy as inconsistent or fragile (all page objects use get_by_role/get_by_label/get_by_test_id/get_by_text consistently)",
+          "passed": true,
+          "evidence": "В§2-C: 'Locators (semantic get_by_role/label/test_id, no CSS/XPath; confirmed with 0 hits)'. The flagged issues are substring matching combined with non-unique data, and the plan_code lookup key. These are concrete data/lookup defects, not a claim that the strategy is inconsistent or fragile."
+        },
+        {
+          "text": "Does NOT include fluff/praise sentences for the clean dimensions (fixtures, factories, locators, diagnostics) in the verdict paragraph вЂ” the user explicitly asked not to relitigate what's fine",
+          "passed": false,
+          "evidence": "The 'Bottom line' verdict opens with praise: 'The architecture is reasonable: fixtures handle DI, there are builders, page objects, client wrappers and a ui/api/hybrid split.' It adds 'The *patterns* are solid'. There is also a full 'В§3 What is genuinely fine' section listing 11 clean items, which the user explicitly said not to spend time on."
+        },
+        {
+          "text": "Every finding is tagged with [Impact: High/Medium/Low | Effort: High/Medium/Low] using only those three legal values",
+          "passed": false,
+          "evidence": "check_format.py reports 0 Impact/Effort tags. The baseline uses a CRITICAL/HIGH/MEDIUM/LOW severity scheme with IDs (C1, H1-H6, M1-M8, L1-L6) and no Effort dimension."
+        }
+      ],
+      "notes": [
+        "Validity of `reruns` as an ini key",
+        "Whether Playwright creates traces/ itself"
+      ]
+    },
+    {
+      "eval_id": 3,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.76,
+        "passed": 13,
+        "failed": 4,
+        "total": 17,
+        "time_seconds": 213.1,
+        "tokens": 88226,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Does NOT claim a God Base Class exists (BasePage.ts is deliberately slim: goto()/waitForLoad() only)",
+          "passed": true,
+          "evidence": "Scorecard SOLID says 'Slim BasePage'. F21 (Info) only notes that panels inherit goto/waitForLoad they don't use. That is an interface-segregation nit, not a God-class claim."
+        },
+        {
+          "text": "Does NOT claim a missing business-step/flow layer exists (src/flows/orderFlows.ts, userFlows.ts, authFlows.ts are the real flow layer and every test uses them)",
+          "passed": true,
+          "evidence": "Scorecard Layering: 'Strong ... spec -> flow -> PO -> helper split is followed'. There is no missing-flow-layer claim."
+        },
+        {
+          "text": "Does NOT claim layer-boundary leakage into tests (no test file imports @playwright/test directly per the fixture's design)",
+          "passed": true,
+          "evidence": "'No spec imports Page/Locator, and no public PO method returns a Locator.' F12 is about flows importing test from fixtures, not tests importing @playwright/test."
+        },
+        {
+          "text": "Does NOT claim cross-file sibling duplication between OrderModifyPage and UserModifyPage as an uncontrolled DRY violation (they share logic via the composed EntityModifyPanel helper, which is the correct fix pattern, not the defect)",
+          "passed": true,
+          "evidence": "'EntityModifyPanel removes the save/cancel/toast duplication between the two modify panels.' There is no sibling-duplication finding."
+        },
+        {
+          "text": "Does NOT claim hardcoded sleeps exist (zero page.waitForTimeout() calls in the fixture)",
+          "passed": true,
+          "evidence": "'no waitForTimeout or setTimeout anywhere.' networkidle (F6) is treated as a discouraged load-state wait, not a sleep."
+        },
+        {
+          "text": "Does NOT claim fragile/positional locators exist (fixture uses only getByRole/getByLabel/getByTestId)",
+          "passed": false,
+          "evidence": "Fails in substance. F14 (Low) 'Substring matching in locators' claims getByLabel('Password') 'also matches a \"Forgot password?\" or \"Confirm password\" label', that getByRole('link',{name:'Orders'}) 'also matches \"Recent orders\"', and that page-wide getByRole('alert') can match unrelated alerts. F13 makes a similar point about the page-wide toast locator, and the Scorecard says 'Small risks from substring matching and page-wide toast and alert locators'. These are speculative fragility claims about the semantic locators the fixture deliberately uses. Borderline: the review does say correctly that there is no XPath, CSS or nth. But the 'rephrased claims count' standard applies."
+        },
+        {
+          "text": "Does NOT flag EntityModifyPanel for not ending in 'Page' as a naming inconsistency (it is explicitly documented as intentionally not a page object)",
+          "passed": true,
+          "evidence": "EntityModifyPanel naming is not flagged. F23 notes that OrderModifyPage/UserModifyPage are panels with a Page suffix, but says 'a deliberate, documented convention, so this is just a note'. That is about different classes and is neutral."
+        },
+        {
+          "text": "Does NOT flag submitLoginAttempt as a duplicate/inconsistent second login method (it is a distinct, correctly-named method for the negative-login test path)",
+          "passed": true,
+          "evidence": "submitLoginAttempt is never named or called a duplicate login method. F23 (Info) only notes that login.spec.ts:26 passes raw strings against the CONTRIBUTING rule, and suggests to 'document the negative-test exception'. That is a doc-vs-test mismatch that acknowledges the negative path. Borderline, but it passes. F11 flags a different duplication: the fixture's private loginAs vs the loginAsUser flow."
+        },
+        {
+          "text": "Does NOT flag the per-test UI login in adminSession/standardSession fixtures as a missing storageState optimization framed as a defect (an optional enhancement note is fine; calling it wrong is not)",
+          "passed": true,
+          "evidence": "storageState is not mentioned. 'Fixture-based DI gives each test its own login' is listed as a strength."
+        },
+        {
+          "text": "Does NOT claim test-data cleanup/teardown is missing (the createdRecords fixture registers and tears down all 4 data-creating specs)",
+          "passed": true,
+          "evidence": "'cleanup is handled by fixtures'; 'each test registers what it creates for teardown cleanup.' F8 is about teardown robustness, not missing teardown."
+        },
+        {
+          "text": "Does NOT claim retries/trace capture are misconfigured (retries: 0 deliberately pairs with trace: 'on-first-retry'... this is documented and correct)",
+          "passed": true,
+          "evidence": "'trace/screenshot/video kept on failure (correctly paired with retries: 0)'. The transcript says it left retries out on purpose because the policy is documented."
+        },
+        {
+          "text": "If thorough, correctly surfaces the missing package-lock.json / npm ci mismatch (CI runs `npm ci` but no lockfile is committed) as a genuine, non-seeded defect",
+          "passed": true,
+          "evidence": "F5 (High) 'CI npm ci with no lockfile': 'Both jobs run npm ci (e2e-tests.yml:27,65) ... The repo has no lockfile of any kind.'"
+        },
+        {
+          "text": "If thorough, correctly surfaces the tsconfig.json lib omitting ES2022 breaking the `cause` property typecheck in errors.ts as a genuine, non-seeded defect",
+          "passed": true,
+          "evidence": "F19 (Low, verify): 'FrameworkError sets this.cause = cause (errors.ts:13), but tsconfig.json sets lib to [\"ES2021\",\"DOM\"]. cause is declared in lib.es2022.error.d.ts, so tsc --noEmit (run in CI) is likely to report TS2339.' The diagnosis and fix are correct. Severity is understated as Low/verify, but the defect is surfaced."
+        },
+        {
+          "text": "If thorough, correctly surfaces the duplicated nextSuffix() helper across orderFactory.ts and userFactory.ts as a real cross-file duplication worth extracting",
+          "passed": true,
+          "evidence": "F10 (Medium) 'Duplicated nextSuffix()': 'orderFactory.ts:3-16 and userFactory.ts:3-16 are character-for-character identical ... Move it to src/factories/uniqueSuffix.ts.'"
+        },
+        {
+          "text": "Produces a FIRST-principles table with mostly passing/clean verdicts, not manufactured failures",
+          "passed": false,
+          "evidence": "There is no FIRST-principles table (check_format: first_table_letters_found = []). The review uses a custom Scorecard instead."
+        },
+        {
+          "text": "The verdict-up-front paragraph does not read as a tour of what's good (no 'the architecture is clean, locators are stable, waits are solid' style praise) вЂ” if genuinely little is wrong, it says so briefly rather than touring strengths",
+          "passed": false,
+          "evidence": "The verdict tours strengths, which is exactly the failure mode: 'You're right that the architecture is in good shape. The layering (spec -> flow -> page object -> composed helper) is clean, the locator strategy is good, there are no hard sleeps or empty catch blocks, test data is built through factories, and cleanup is handled by fixtures. That is better than most suites I see.' It also adds a full '## 4. What's done well' section."
+        },
+        {
+          "text": "Total finding count is low (roughly 0-5 real findings), consistent with this being a deliberately clean fixture вЂ” a review padding this out with 10+ findings to seem thorough is a failure mode to flag",
+          "passed": false,
+          "evidence": "23 findings by the review's own count: 'Totals (23 findings): 5 High, 5 Medium, 1 Low-Medium, 9 Low, 3 Info'. That includes 5 High and 8 'must fix before sign-off' items on a deliberately clean fixture. Many are speculative: F13 toast, F14 substring matching, F16 double wrapping, F17 coverage wishlist, and the F21-F23 info items. This is the padding failure mode."
+        }
+      ],
+      "notes": [
+        "F19 was not confirmed by running tsc",
+        "F2, F8 and F9 depend on app behavior"
+      ]
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 0.9,
+        "stddev": 0.0917,
+        "min": 0.82,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 425.3667,
+        "stddev": 107.6556,
+        "min": 324.9,
+        "max": 539.0
+      },
+      "tokens": {
+        "mean": 139073.0,
+        "stddev": 21677.2337,
+        "min": 125271,
+        "max": 164058
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.67,
+        "stddev": 0.1015,
+        "min": 0.56,
+        "max": 0.76
+      },
+      "time_seconds": {
+        "mean": 226.1667,
+        "stddev": 64.402,
+        "min": 169.3,
+        "max": 296.1
+      },
+      "tokens": {
+        "mean": 90767.3333,
+        "stddev": 15301.1093,
+        "min": 76896,
+        "max": 107180
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.23",
+      "time_seconds": "+199.2",
+      "tokens": "+48306"
+    }
+  },
+  "notes": [
+    "Single run per configuration per eval: the ± figures are spread ACROSS the 3 evals, not run-to-run variance. Treat per-eval deltas as indicative, not statistically robust.",
+    "The skill wins on all three fixtures, and the margin scales with defect density: messy-Java 100% vs 56% (+44 pts), medium-Python 88% vs 69% (+19), clean-TypeScript 82% vs 76% (+6). Same shape as iteration-1 (81% vs 62%), with the with-skill rate up 9 pts.",
+    "About half the raw gap comes from format assertions (Impact/Effort tags, FIRST table, exact checklist columns) that a no-skill run cannot pass. On content assertions only (45 of 51), the score is skill 40/45 (89%) vs baseline 34/45 (76%), so the real content edge is about 13 pts. On clean-TypeScript the content score is a tie (13/16 each).",
+    "Where the content edge comes from: the baseline missed the missing business-step/flow layer, gave no quantified assertion-free count or locator distribution (messy-Java), and both baselines added a 'what's done well' praise section that the user (eval 2) and the eval (eval 3) explicitly reject. The no-fluff rule works: both with-skill verdicts were issues-only.",
+    "Two iteration-1 failures are now fixed: the empty-catch count is reported (38 across 9 files), and the flow-layer finding is written up on medium-Python.",
+    "Still failing, same as iteration-1: on medium-Python the skill merged the raw-token/domain-representation issue into the raw-requests layering finding (one tag, one fix), even though its own calibration notes say to keep them separate. Neither run named the clean sibling API files (test_account_api.py, test_subscription_api.py) as the contrast case.",
+    "Clean-fixture over-reporting: on clean-TypeScript the with-skill run produced 11 tagged findings against an expected 0-5. Only 4 map to the manifest's genuine bugs; the rest are speculative (pagination 'to be verified', ESLint gate, dead code). The baseline padded more (23 findings, 5 'High'). The skill's issues-only framing removes praise but does not stop padding with low-value findings.",
+    "Both configurations missed the tsconfig lib/ES2022 `cause` typecheck bug on clean-TypeScript in iteration-1. This time the baseline caught it and the skill run did not. Bugs that only show up when two files are read together remain hit-or-miss.",
+    "Cost: the skill takes about 1.9x the wall-clock time (425s vs 226s) and about 1.5x the tokens (139k vs 91k). The mandatory grep checklist runs in full even on the clean fixture.",
+    "Answer-key issues the graders found (fix before trusting future deltas). (a) eval-3 assertion #11 says trace is 'on-first-retry', but the fixture uses 'retain-on-failure'. (b) medium-framework.manifest.md lists conftest.py as deliberately clean, yet both runs found a real bug there (AuthContext calls .authenticate() on AccountClient, breaking 15/23 tests); its line numbers are also stale and its header still points at the deepeval fixture path. (c) The messy-Java assertion-free expectation (4) ignores 2 WIP tests that testng.xml actually runs (6 is defensible). (d) Fixture comments in medium-framework give away the defects (e.g. 'never asserts anything'), which makes several detection assertions easy for the baseline too."
+  ]
+}

@@ -1,0 +1,168 @@
+{
+  "expectations": [
+    {
+      "text": "Does NOT claim a God Base Class exists (BasePage.ts is deliberately slim: goto()/waitForLoad() only)",
+      "passed": true,
+      "evidence": "BasePage is called slim and is not flagged. Checklist SOLID row: 'BasePage is 20 lines and handles navigation only (BasePage.ts:10-20)'. There is no God-class finding."
+    },
+    {
+      "text": "Does NOT claim a missing business-step/flow layer exists (src/flows/orderFlows.ts, userFlows.ts, authFlows.ts are the real flow layer and every test uses them)",
+      "passed": true,
+      "evidence": "Layering row: 'Tests go through src/flows/ (6 functions) and page objects.' There is no claim of a missing flow layer."
+    },
+    {
+      "text": "Does NOT claim layer-boundary leakage into tests (no test file imports @playwright/test directly per the fixture's design)",
+      "passed": true,
+      "evidence": "Checklist layering row: '0 of 5 spec files import @playwright/test ... No public method returns a Locator.' The transcript grep confirms 0. Its suggestion that flows import test from @playwright/test is about src/flows, not tests."
+    },
+    {
+      "text": "Does NOT claim cross-file sibling duplication between OrderModifyPage and UserModifyPage as an uncontrolled DRY violation (they share logic via the composed EntityModifyPanel helper, which is the correct fix pattern, not the defect)",
+      "passed": true,
+      "evidence": "There is no sibling-duplication finding. The SOLID and DRY rows credit EntityModifyPanel: 'Shared panel logic is composed rather than inherited' and 'Builders and EntityModifyPanel remove the large duplications.'"
+    },
+    {
+      "text": "Does NOT claim hardcoded sleeps exist (zero page.waitForTimeout() calls in the fixture)",
+      "passed": true,
+      "evidence": "'Grep for unconditional sleeps ... 0 hits.' The networkidle finding is framed as a discouraged load-state wait, not a hard sleep, and the transcript keeps the two separate."
+    },
+    {
+      "text": "Does NOT claim fragile/positional locators exist (fixture uses only getByRole/getByLabel/getByTestId)",
+      "passed": true,
+      "evidence": "There is no positional or XPath locator claim. The transcript counts getByRole 13, getByLabel 6, getByTestId 5, and locator(/xpath/nth(/getByText 0. The getByLabel('SKU') strict-mode remark is about the multi-item test logic, not locator fragility."
+    },
+    {
+      "text": "Does NOT flag EntityModifyPanel for not ending in 'Page' as a naming inconsistency (it is explicitly documented as intentionally not a page object)",
+      "passed": true,
+      "evidence": "EntityModifyPanel naming is never flagged. The naming check counts '6 of 6 page objects end in Page' and is clean."
+    },
+    {
+      "text": "Does NOT flag submitLoginAttempt as a duplicate/inconsistent second login method (it is a distinct, correctly-named method for the negative-login test path)",
+      "passed": false,
+      "evidence": "Tagged finding '## The negative-login path contradicts the \"never log in with a raw credential string\" rule [Impact: Low | Effort: Low]' traces login.spec.ts:26 -> attemptInvalidLogin -> LoginPage.submitLoginAttempt(email, password). It concludes 'So the suite has two ways to express the same login concept.' That is the anticipated false positive: submitLoginAttempt treated as an inconsistent second login method. Mitigating context: CONTRIBUTING.md:60-62 does say 'Never log in with a raw credential string' with no stated exception, so the doc gap is real. But the finding uses the excluded framing, and it is carried into the checklist 'Framework is consistent' row as well."
+    },
+    {
+      "text": "Does NOT flag the per-test UI login in adminSession/standardSession fixtures as a missing storageState optimization framed as a defect (an optional enhancement note is fine; calling it wrong is not)",
+      "passed": true,
+      "evidence": "storageState is never mentioned, and per-test login is not called a defect. FIRST Independent credits 'a fresh login per test'."
+    },
+    {
+      "text": "Does NOT claim test-data cleanup/teardown is missing (the createdRecords fixture registers and tears down all 4 data-creating specs)",
+      "passed": true,
+      "evidence": "Cleanup is acknowledged as present: 'Teardown cleanup runs on failure (fixtures.ts:69-76)'. The Low finding is about sequential deletes stopping at the first failure, not missing teardown."
+    },
+    {
+      "text": "Does NOT claim retries/trace capture are misconfigured (retries: 0 deliberately pairs with trace: 'on-first-retry'... this is documented and correct)",
+      "passed": true,
+      "evidence": "There is no misconfiguration claim. Checklist: 'Trace, screenshot and video are kept on failure (playwright.config.ts:33-35)'; 'retries: 0 ... so no flakiness is being masked.' The fixture actually uses trace: 'retain-on-failure', which the review reflects correctly."
+    },
+    {
+      "text": "If thorough, correctly surfaces the missing package-lock.json / npm ci mismatch (CI runs `npm ci` but no lockfile is committed) as a genuine, non-seeded defect",
+      "passed": true,
+      "evidence": "'## No lockfile committed; npm ci fails in both CI jobs [Impact: High | Effort: Low]' cites e2e-tests.yml:27 and :65. Verified: npm ci is on both lines. It is also item 1 in the priority list, and the CI checklist row is '-'."
+    },
+    {
+      "text": "If thorough, correctly surfaces the tsconfig.json lib omitting ES2022 breaking the `cause` property typecheck in errors.ts as a genuine, non-seeded defect",
+      "passed": false,
+      "evidence": "Not surfaced. The review never mentions tsconfig lib, ES2021/ES2022, or the errors.ts this.cause typecheck failure. The checklist says CI enforces type checking but does not notice the check would fail. Verified in the fixture: tsconfig.json:5 'lib': ['ES2021','DOM'], and errors.ts:13 'this.cause = cause'."
+    },
+    {
+      "text": "If thorough, correctly surfaces the duplicated nextSuffix() helper across orderFactory.ts and userFactory.ts as a real cross-file duplication worth extracting",
+      "passed": true,
+      "evidence": "'## The nextSuffix() ID generator is copy-pasted between the two factories [Impact: Low | Effort: Low]': 'orderFactory.ts:3-16 and userFactory.ts:3-16 hold identical copies ... Move it to src/utils/uniqueId.ts.'"
+    },
+    {
+      "text": "Produces a FIRST-principles table with mostly passing/clean verdicts, not manufactured failures",
+      "passed": true,
+      "evidence": "FIRST table: Fast 'Pass, with caveats', Independent 'Pass', Repeatable 'Pass, with one hypothesis', Self-validating 'Fails (5 of 15)', Timely 'N/A statically'. The one Fail is backed by the manifest's genuine unseeded 'tests assert less than their names claim' bug, so it is not manufactured."
+    },
+    {
+      "text": "The verdict-up-front paragraph does not read as a tour of what's good (no 'the architecture is clean, locators are stable, waits are solid' style praise) — if genuinely little is wrong, it says so briefly rather than touring strengths",
+      "passed": true,
+      "evidence": "The verdict opens with 'Two things should block sign-off' and names the over-claiming tests and the missing lockfile. 'The rest are small fixes: ...' lists issues only. It does not tour strengths."
+    },
+    {
+      "text": "Total finding count is low (roughly 0-5 real findings), consistent with this being a deliberately clean fixture — a review padding this out with 10+ findings to seem thorough is a failure mode to flag",
+      "passed": false,
+      "evidence": "Count: 11 distinct Impact/Effort-tagged findings plus 1 'Noted trade-off' bullet. check_format reports 11 finding headings, one of them the untagged trade-off heading. The findings: (1) over-claiming tests, (2) lockfile, (3) networkidle, (4) login never confirms plus placeholder creds, (5) UI presetups, (6) pagination hypothesis, (7) teardown stops at first failure, (8) nextSuffix duplication, (9) login-sequence duplication, (10) negative-login raw creds, (11) no ESLint, (12) unused members. Only 4 match the manifest's genuine bugs (1, 2, 5, 8). Most of the rest are speculative or low-value: pagination is 'to be verified', and teardown robustness, ESLint and dead code add little. That is well beyond 'roughly 0-5'. The run is padded, though much less than the 23-finding baseline."
+    }
+  ],
+  "summary": {
+    "passed": 14,
+    "failed": 3,
+    "total": 17,
+    "pass_rate": 0.82
+  },
+  "execution_metrics": {
+    "output_chars": 22129,
+    "transcript_chars": 6589,
+    "total_tokens": 127890,
+    "errors_encountered": 0
+  },
+  "timing": {
+    "executor_duration_seconds": 324.9,
+    "grader_duration_seconds": 0.0,
+    "total_with_grader_seconds_estimate": 324.9
+  },
+  "claims": [
+    {
+      "claim": "Both CI jobs run npm ci at e2e-tests.yml:27 and :65",
+      "type": "factual",
+      "verified": true,
+      "evidence": "grep confirms npm ci on lines 27 and 65. The manifest's '27,64' is off by one."
+    },
+    {
+      "claim": "networkidle wait at BasePage.ts:18 with 3 call sites",
+      "type": "factual",
+      "verified": true,
+      "evidence": "BasePage.ts:18 has waitForLoadState('networkidle')."
+    },
+    {
+      "claim": "Notes are never typed into the UI; withNotes has 0 callers",
+      "type": "factual",
+      "verified": true,
+      "evidence": "This matches the manifest's genuine unseeded 'tests assert less than their names claim' bug. Both runs found it independently."
+    },
+    {
+      "claim": "All 30 files read in full",
+      "type": "process",
+      "verified": true,
+      "evidence": "The fixture has 30 files (find | wc -l), and the transcript shows a single cat -n loop over them."
+    },
+    {
+      "claim": "Manifest/evals files not opened",
+      "type": "process",
+      "verified": true,
+      "evidence": "Stated in transcript step 2. Nothing in the review suggests manifest leakage, and it missed the tsconfig bug the manifest lists."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [
+      "Whether the multi-item test overwrites or hits a strict-mode error depends on the app markup",
+      "Pagination sort and /api proxying are unverified"
+    ],
+    "needs_review": [],
+    "workarounds": [
+      "Read all files directly instead of delegating to subagents, which the skill prefers"
+    ]
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Does NOT claim retries/trace capture are misconfigured (retries: 0 deliberately pairs with trace: 'on-first-retry'... this is documented and correct)",
+        "reason": "The assertion text is stale. The fixture now uses trace: 'retain-on-failure' (playwright.config.ts:33), and the manifest says pairing retries: 0 with 'on-first-retry' was the old bug. A grader who reads the text literally could penalise a review that correctly cites retain-on-failure. Update the parenthetical."
+      },
+      {
+        "reason": "No assertion rewards the manifest's first genuine unseeded bug: tests that assert less than their titles claim (notes, multi-item, custom status, admin/read-only role). Both runs made it their headline finding. Add an 'If thorough, surfaces the over-claiming tests' assertion. The UI-instead-of-API seeding bug has the same gap, and only with_skill caught it."
+      },
+      {
+        "assertion": "Does NOT flag submitLoginAttempt as a duplicate/inconsistent second login method (it is a distinct, correctly-named method for the negative-login test path)",
+        "reason": "CONTRIBUTING.md:60-62 says 'Never log in with a raw credential string' and states no negative-path exception. Both runs therefore flagged login.spec.ts:26 as contradicting the docs, which is a defensible doc-gap observation. Either add the exception to CONTRIBUTING, so the guard tests pure false-positive behaviour, or reword the assertion to separate 'the doc should mention the exception' (OK) from 'a second login method is a duplicate' (not OK)."
+      },
+      {
+        "assertion": "Total finding count is low (roughly 0-5 real findings), consistent with this being a deliberately clean fixture — a review padding this out with 10+ findings to seem thorough is a failure mode to flag",
+        "reason": "The manifest itself lists 5 genuine unseeded bugs plus an acceptable WebKit nit. A fully thorough review therefore sits at 5-6 findings before any other legitimate observation, and 'roughly 0-5' leaves no room for genuine extras such as the networkidle wait, which is arguably real. Consider '<= 7 findings, with no more than 2 outside the manifest's genuine list'."
+      }
+    ],
+    "overall": "The false-positive guards discriminate well: the baseline's praise-tour verdict and 23 findings fail clearly. Three gaps remain: the trace assertion is stale, the over-claiming-tests bug is not rewarded, and the finding-count threshold sits right at the manifest's own genuine-bug count."
+  }
+}
